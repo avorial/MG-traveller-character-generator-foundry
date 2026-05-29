@@ -116,4 +116,27 @@ describe("TravellerLifepathEngine", () => {
     expect(character.pre_career_status.graduated).toBe(false);
     expect(character.phase).toBe("career");
   });
+
+  it("honors all-commissioned career flags", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character = engine.startTerm(character, "zhodani_guard", "support").character;
+    expect(character.current_term?.commissioned).toBe(true);
+    expect(character.current_term?.rank_title).toBe("Specialist");
+  });
+
+  it("honors no-survival Hiver careers and two-roll mustering", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([8, 8, 10]));
+    let character = engine.freshCharacter();
+    character.species_id = "hiver";
+    character.society_id = "hiver_federation";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 9, SOC: 10 };
+    character = engine.startTerm(character, "hiver_academic", "researcher").character;
+    character = engine.survivalRoll(character).character;
+    expect(character.current_term?.survived).toBe(true);
+    character = engine.endTerm(character, true).character;
+    expect(character.completed_careers.at(-1)?.benefit_rolls_earned).toBe(2);
+    character = engine.musterOutRoll(character, "hiver_academic", "benefit").character;
+    expect(character.pending_benefit_rolls).toBe(1);
+  });
 });

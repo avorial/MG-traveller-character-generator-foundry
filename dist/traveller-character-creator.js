@@ -1,4 +1,4 @@
-const N = ["STR", "DEX", "END", "INT", "EDU", "SOC"], L = [
+const A = ["STR", "DEX", "END", "INT", "EDU", "SOC"], I = [
   "STR",
   "DEX",
   "END",
@@ -16,7 +16,7 @@ const N = ["STR", "DEX", "END", "INT", "EDU", "SOC"], L = [
   "FOL",
   "REP"
 ];
-function E() {
+function T() {
   return {
     name: "",
     homeworld: "",
@@ -114,22 +114,22 @@ function g(o, e, r) {
   const t = Math.max(0, Math.trunc(r));
   e in o.characteristics ? o.characteristics[e] = t : o.extra_characteristics[e] = t;
 }
-function k(o, e, r = 0, t = null, s = !1) {
+function v(o, e, r = 0, t = null, s = !1) {
   if (o.forbidden_skills.includes(e) || t && o.forbidden_skills.includes(`${e} (${t})`))
-    return `Skipped ${S(e, t)} (forbidden by species)`;
+    return `Skipped ${w(e, t)} (forbidden by species)`;
   const i = o.skills.find((a) => a.name === e && (a.speciality ?? null) === t);
   if (i)
-    return r === 0 ? `Already has ${S(e, t)} ${i.level}` : s ? r > i.level ? (i.level = Math.min(r, 4), T(o.skills), `Increased ${S(e, t)} to ${i.level}`) : `${S(e, t)} unchanged (already ${i.level})` : (i.level = Math.min(i.level + r, 4), T(o.skills), `Increased ${S(e, t)} to ${i.level}`);
+    return r === 0 ? `Already has ${w(e, t)} ${i.level}` : s ? r > i.level ? (i.level = Math.min(r, 4), q(o.skills), `Increased ${w(e, t)} to ${i.level}`) : `${w(e, t)} unchanged (already ${i.level})` : (i.level = Math.min(i.level + r, 4), q(o.skills), `Increased ${w(e, t)} to ${i.level}`);
   const n = Math.max(0, r);
-  return o.skills.push({ name: e, level: n, speciality: t }), t && n >= 1 && !o.skills.some((a) => a.name === e && !a.speciality) && o.skills.push({ name: e, level: 0, speciality: null }), T(o.skills), `Gained ${S(e, t)} ${n}`;
+  return o.skills.push({ name: e, level: n, speciality: t }), t && n >= 1 && !o.skills.some((a) => a.name === e && !a.speciality) && o.skills.push({ name: e, level: 0, speciality: null }), q(o.skills), `Gained ${w(e, t)} ${n}`;
 }
-function S(o, e) {
+function w(o, e) {
   return `${o}${e ? ` (${e})` : ""}`;
 }
-function T(o) {
+function q(o) {
   o.sort((e, r) => `${e.name.toLowerCase()}\0${e.speciality ?? ""}`.localeCompare(`${r.name.toLowerCase()}\0${r.speciality ?? ""}`));
 }
-class B {
+class U {
   constructor(e = []) {
     this.forced = [...e];
   }
@@ -167,23 +167,23 @@ class B {
     return Math.floor(Math.random() * e) + 1;
   }
 }
-function M(o) {
+function O(o) {
   return o <= 0 ? -3 : o <= 2 ? -2 : Math.floor(o / 3) - 2;
 }
-class I {
-  constructor(e, r = new B()) {
+class F {
+  constructor(e, r = new U()) {
     this.rules = e, this.roller = r;
   }
   freshCharacter() {
-    return E();
+    return T();
   }
   rollInitialCharacteristics(e, r = !1) {
     const t = h(e), s = {}, i = /* @__PURE__ */ new Set();
     if (r) {
-      const n = N.map((a) => ({ stat: a, roll: this.roller.roll2D() }));
+      const n = A.map((a) => ({ stat: a, roll: this.roller.roll2D() }));
       n.sort((a, l) => l.roll.total - a.roll.total), i.add(n[0].stat), i.add(n[1].stat);
     }
-    for (const n of N) {
+    for (const n of A) {
       const a = this.roller.rollCharacteristic(r && i.has(n));
       t.characteristics[n] = a.total, s[n] = a;
     }
@@ -218,10 +218,10 @@ class I {
     return s.forbidden_skills = [...t.forbidden_skills ?? []], s.traits = [...t.traits ?? []], r.includes("aslan") ? (s.phase = "aslan_setup", s.aslan_setup_status = { phase: "gender" }) : t.psionic_training_at_start || r.includes("zhodani") && s.characteristics.SOC >= 10 ? s.phase = "zhodani_training" : s.phase = "background", s.notes.push(`Applied species: ${t.name ?? r}.`), { species: t, character: s };
   }
   applyBackgroundSkills(e, r) {
-    const t = h(e), s = Math.max(0, 3 + M(t.characteristics.EDU));
+    const t = h(e), s = Math.max(0, 3 + O(t.characteristics.EDU));
     for (const i of r.slice(0, s)) {
-      const [n, a] = x(i);
-      k(t, n, 0, a);
+      const [n, a] = R(i);
+      v(t, n, 0, a);
     }
     return t.phase = "pre_career", t.notes.push(`Chose ${Math.min(r.length, s)} background skills.`), { allowed: s, chosen: r.slice(0, s), character: t };
   }
@@ -234,10 +234,10 @@ class I {
     for (const a of i.skills ?? []) {
       const l = typeof a == "string" ? a : `${a.name}${a.speciality ? ` (${a.speciality})` : ""}`, c = t[l] ?? a;
       if (typeof c == "string") {
-        const [u, d, p] = C(c);
-        k(n, u, p === 1 && !/\d+$/.test(c.trim()) ? 0 : p, d);
+        const [u, d, _] = D(c);
+        v(n, u, _ === 1 && !/\d+$/.test(c.trim()) ? 0 : _, d);
       } else
-        k(n, c.name, Number(c.level ?? 0), c.speciality ?? null);
+        v(n, c.name, Number(c.level ?? 0), c.speciality ?? null);
     }
     n.credits += Number(i.credits ?? 0);
     for (const a of i.equipment ?? []) n.equipment.push({ name: String(a), quantity: 1, notes: null });
@@ -251,10 +251,10 @@ class I {
       g(n, a, f(n, a) + Number(l));
     for (const a of i.skills ?? [])
       if (typeof a == "string") {
-        const [l, c, u] = C(a);
-        k(n, l, u, c);
+        const [l, c, u] = D(a);
+        v(n, l, u, c);
       } else
-        k(n, a.name, Number(a.level ?? 0), a.speciality ?? null, !0);
+        v(n, a.name, Number(a.level ?? 0), a.speciality ?? null, !0);
     n.credits += Number(i.credits ?? 0);
     for (const a of i.equipment ?? []) n.equipment.push({ name: String(a), quantity: 1, notes: null });
     for (let a = 0; a < Number(i.contacts ?? 0); a++) n.associates.push({ kind: "contact", description: i.contact_description ?? "career package contact" });
@@ -276,8 +276,8 @@ class I {
     if (!s) throw new Error(`Unknown skill package: ${r}`);
     const i = h(e);
     for (const n of s.skills ?? []) {
-      const [a, l] = x(n);
-      k(i, a, 1, l);
+      const [a, l] = R(n);
+      v(i, a, 1, l);
     }
     return i.phase = "done", i.notes.push(`Applied skill package: ${s.name ?? r}.`), { package: s, character: i };
   }
@@ -286,25 +286,25 @@ class I {
     return r.phase = "career", r.notes.push("Skipped pre-career education."), { character: r };
   }
   qualifyForPreCareer(e, r, t = {}) {
-    var m, v, j;
+    var m, y, $;
     const s = (m = this.rules.table("education").tracks) == null ? void 0 : m[r];
     if (!s) throw new Error(`Unknown pre-career track: ${r}`);
-    const i = h(e), n = t.service ? (v = s.services) == null ? void 0 : v[t.service] : null, a = t.curriculum ? (j = s.curricula) == null ? void 0 : j[t.curriculum] : null, l = (n == null ? void 0 : n.qualification) ?? s.qualification ?? {}, c = this.checkDm(i, l), u = l.automatic ? null : this.roller.roll2D(c), d = l.automatic || !!(u && u.total >= Number(l.target ?? 0));
+    const i = h(e), n = t.service ? (y = s.services) == null ? void 0 : y[t.service] : null, a = t.curriculum ? ($ = s.curricula) == null ? void 0 : $[t.curriculum] : null, l = (n == null ? void 0 : n.qualification) ?? s.qualification ?? {}, c = this.checkDm(i, l), u = l.automatic ? null : this.roller.roll2D(c), d = l.automatic || !!(u && u.total >= Number(l.target ?? 0));
     if (!d)
       return i.phase = "career", i.notes.push(`Failed ${s.name ?? r} qualification${u ? ` (${u.total})` : ""}.`), { track: s, roll: u, qualified: d, character: i };
     this.applyStatBlock(i, s.enrollment_bonus ?? {}), this.applySkillResults(i, s.enrollment_auto_skills ?? [], 0);
-    const p = this.preCareerSkillPool(s, n, a), _ = this.applyChosenSkills(i, t.skills, p, Number(s.enrollment_skill_picks ?? 0), Number(s.enrollment_pick_level ?? 0));
+    const _ = this.preCareerSkillPool(s, n, a), p = this.applyChosenSkills(i, t.skills, _, Number(s.enrollment_skill_picks ?? 0), Number(s.enrollment_pick_level ?? 0));
     if (a != null && a.enrollment_skill_table) {
-      const b = this.rollOnExternalSkillTable(i, a.enrollment_skill_table.career, a.enrollment_skill_table.table);
-      b && _.push(b);
+      const k = this.rollOnExternalSkillTable(i, a.enrollment_skill_table.career, a.enrollment_skill_table.table);
+      k && p.push(k);
     }
-    for (let b = 0; b < Number(s.enrollment_service_skill_random ?? 0); b++) {
-      const R = this.rollOnExternalSkillTable(i, (n == null ? void 0 : n.career_id) ?? "merchant", "service_skills");
-      R && _.push(R);
+    for (let k = 0; k < Number(s.enrollment_service_skill_random ?? 0); k++) {
+      const S = this.rollOnExternalSkillTable(i, (n == null ? void 0 : n.career_id) ?? "merchant", "service_skills");
+      S && p.push(S);
     }
     if (l.requires_psi_test && !i.psi_tested) {
-      const b = this.roller.roll2D();
-      i.psi = b.total, g(i, "PSI", b.total), i.psi_tested = !0;
+      const k = this.roller.roll2D();
+      i.psi = k.total, g(i, "PSI", k.total), i.psi_tested = !0;
     }
     return i.pre_career_status = {
       track_id: r,
@@ -312,41 +312,41 @@ class I {
       career_id: (n == null ? void 0 : n.career_id) ?? null,
       curriculum_id: (a == null ? void 0 : a.id) ?? t.curriculum ?? null,
       enrolled: !0,
-      skill_pool: p,
-      enrollment_skills: _
+      skill_pool: _,
+      enrollment_skills: p
     }, i.phase = "pre_career", i.notes.push(`Qualified for ${s.name ?? r}.`), { track: s, roll: u, qualified: d, character: i };
   }
   graduatePreCareer(e, r = []) {
-    var _, m;
-    const t = e.pre_career_status ?? {}, s = String(t.track_id ?? ""), i = (_ = this.rules.table("education").tracks) == null ? void 0 : _[s];
+    var p, m;
+    const t = e.pre_career_status ?? {}, s = String(t.track_id ?? ""), i = (p = this.rules.table("education").tracks) == null ? void 0 : p[s];
     if (!i) throw new Error("No active pre-career track to graduate.");
     const n = h(e), a = i.graduation ?? {};
     if (t.forced_graduation_failure)
       return n.pre_career_status = { ...t, graduated: !1, honours: !1, graduation_roll: null, outcome_note: ((m = a.on_failure) == null ? void 0 : m.note) ?? "Failed to graduate." }, n.age += Number(i.age_cost ?? 0), n.pre_career_terms += Number(i.age_cost ?? 0) > 0 ? 1 : 0, n.phase = "career", n.notes.push(`Failed to graduate from ${i.name ?? s} due to pre-career event.`), { track: i, roll: null, graduated: !1, honours: !1, character: n };
-    const l = this.checkDm(n, a), c = this.roller.roll2D(l), u = c.total >= Number(a.honours_target ?? 1 / 0), d = u || c.total >= Number(a.target ?? 0), p = d ? (u ? a.on_honours : a.on_graduation) ?? {} : a.on_failure ?? {};
-    return d && this.applyPreCareerOutcome(n, i, p, r), n.age = Math.max(n.age + Number(i.age_cost ?? 0), this.rollAgeOverride(p.age_override) ?? 0), n.pre_career_terms += Number(i.age_cost ?? 0) > 0 ? 1 : 0, n.pre_career_status = { ...t, graduated: d, honours: u, graduation_roll: c.total, outcome_note: p.note ?? null }, n.phase = "career", n.notes.push(`${d ? u ? "Graduated with honours from" : "Graduated from" : "Failed to graduate from"} ${i.name ?? s}.`), { track: i, roll: c, graduated: d, honours: u, character: n };
+    const l = this.checkDm(n, a), c = this.roller.roll2D(l), u = c.total >= Number(a.honours_target ?? 1 / 0), d = u || c.total >= Number(a.target ?? 0), _ = d ? (u ? a.on_honours : a.on_graduation) ?? {} : a.on_failure ?? {};
+    return d && this.applyPreCareerOutcome(n, i, _, r), n.age = Math.max(n.age + Number(i.age_cost ?? 0), this.rollAgeOverride(_.age_override) ?? 0), n.pre_career_terms += Number(i.age_cost ?? 0) > 0 ? 1 : 0, n.pre_career_status = { ...t, graduated: d, honours: u, graduation_roll: c.total, outcome_note: _.note ?? null }, n.phase = "career", n.notes.push(`${d ? u ? "Graduated with honours from" : "Graduated from" : "Failed to graduate from"} ${i.name ?? s}.`), { track: i, roll: c, graduated: d, honours: u, character: n };
   }
   preCareerEventRoll(e, r = !1) {
     const t = h(e), s = this.rules.table("education"), i = r ? s.aslan_pre_career_events : s.pre_career_events, n = this.roller.roll2D(), a = String(Math.max(2, Math.min(12, n.total))), l = String((i == null ? void 0 : i[a]) ?? "No event.");
     return this.applyPreCareerEventEffects(t, n.total, l, r), t.pre_career_status = { ...t.pre_career_status ?? {}, last_event_roll: n.total, last_event: l }, t.notes.push(`Pre-career event: ${l}`), { roll: n, event: l, character: t };
   }
   qualifyForCareer(e, r) {
-    var u, d, p;
+    var u, d, _;
     const t = this.rules.career(r);
     if (!t) throw new Error(`Unknown career: ${r}`);
     const s = h(e), i = this.careerBlocked(s, t);
     if (i)
       return s.notes.push(`Cannot qualify for ${t.name ?? r}: ${i}.`), { career: t, qualified: !1, blockedReason: i, character: s };
-    const n = s.auto_entry_career_id === r || s.auto_qualify_career_ids.includes(r), a = this.checkDm(s, t.qualification ?? {}) + s.dm_next_qualification + Number(s.permanent_qualification_dm_by_career[r] ?? 0) - s.failed_qualifications_this_term, l = n || (u = t.qualification) != null && u.automatic ? null : this.roller.roll2D(a), c = n || ((d = t.qualification) == null ? void 0 : d.automatic) || !!(l && l.total >= Number(((p = t.qualification) == null ? void 0 : p.target) ?? 0));
+    const n = s.auto_entry_career_id === r || s.auto_qualify_career_ids.includes(r), a = this.checkDm(s, t.qualification ?? {}) + s.dm_next_qualification + Number(s.permanent_qualification_dm_by_career[r] ?? 0) - s.failed_qualifications_this_term, l = n || (u = t.qualification) != null && u.automatic ? null : this.roller.roll2D(a), c = n || ((d = t.qualification) == null ? void 0 : d.automatic) || !!(l && l.total >= Number(((_ = t.qualification) == null ? void 0 : _.target) ?? 0));
     return s.dm_next_qualification = 0, c ? (s.failed_qualifications_this_term = 0, s.notes.push(`Qualified for ${t.name ?? r}.`)) : (s.failed_qualifications_this_term += 1, s.notes.push(`Failed qualification for ${t.name ?? r}${l ? ` (${l.total})` : ""}.`)), { career: t, roll: l, qualified: c, character: s };
   }
   startTerm(e, r, t) {
-    var p, _;
+    var _, p;
     const s = this.rules.career(r);
     if (!s) throw new Error(`Unknown career: ${r}`);
     const i = Object.keys(s.assignments ?? {}), n = t ?? i[0];
-    if (!((p = s.assignments) != null && p[n])) throw new Error(`Unknown assignment ${n} for ${r}`);
-    const a = h(e), l = a.term_history.filter((m) => m.career_id === r).length, c = a.starts_commissioned_career_id === r || !!a.completed_careers.find((m) => m.career_id === r && m.commissioned), u = c ? Number(a.starts_commissioned_rank ?? 1) : 0, d = {
+    if (!((_ = s.assignments) != null && _[n])) throw new Error(`Unknown assignment ${n} for ${r}`);
+    const a = h(e), l = a.term_history.filter((m) => m.career_id === r).length, c = !!s.all_commissioned || a.starts_commissioned_career_id === r || !!a.completed_careers.find((m) => m.career_id === r && m.commissioned), u = c ? Number(a.starts_commissioned_rank ?? 1) : 0, d = {
       career_id: r,
       assignment_id: n,
       term_number: l + 1,
@@ -359,7 +359,7 @@ class I {
       survived: null,
       advanced: null,
       mishap: null,
-      basic_training: l === 0,
+      basic_training: l === 0 && !s.hiver_no_basic_training,
       benefit_forfeited: !1,
       survival_roll_total: null,
       advancement_roll_total: null,
@@ -367,11 +367,15 @@ class I {
       frozen_watch: !1
     };
     if (a.current_term = d, d.basic_training) {
-      for (const m of Object.values(((_ = s.skill_tables) == null ? void 0 : _.service_skills) ?? {}).filter((v) => typeof v == "string")) {
-        const v = this.applySkillOrStat(a, m, 0);
-        v && d.skills_gained.push(v);
+      for (const m of Object.values(((p = s.skill_tables) == null ? void 0 : p.service_skills) ?? {}).filter((y) => typeof y == "string")) {
+        const y = this.applySkillOrStat(a, m, 0);
+        y && d.skills_gained.push(y);
       }
       this.applyRankBonus(a, s, d);
+    }
+    for (const m of s.career_start_skills ?? []) {
+      const y = this.applySkillOrStat(a, String(m), 0);
+      y && d.skills_gained.push(y);
     }
     return a.phase = "career", a.notes.push(`Started ${s.name ?? r} term ${d.term_number}.`), { career: s, term: d, character: a };
   }
@@ -380,7 +384,10 @@ class I {
     return n.note && s.skills_gained.push(n.note), { career: i, tableId: r, roll: n.roll, result: n.entry, character: t };
   }
   survivalRoll(e) {
-    const r = h(e), t = this.requireCurrentTerm(r), s = this.rules.career(t.career_id), n = s.assignments[t.assignment_id].survival ?? {}, a = this.checkDm(r, n) + r.dm_next_survival, l = this.roller.roll2D(a), c = l.natural !== 2 && l.total >= Number(n.target ?? 0);
+    const r = h(e), t = this.requireCurrentTerm(r), s = this.rules.career(t.career_id);
+    if (s.no_survival)
+      return t.survived = !0, t.survival_roll_total = null, r.notes.push(`${s.name ?? t.career_id} has no survival roll.`), { career: s, roll: null, survived: !0, character: r };
+    const i = s.assignments[t.assignment_id], n = s.survival ?? i.survival ?? {}, a = this.checkDm(r, n) + r.dm_next_survival, l = this.roller.roll2D(a), c = l.natural !== 2 && l.total >= Number(n.target ?? 0);
     return t.survived = c, t.survival_roll_total = l.total, r.dm_next_survival = 0, c || t.events.push("Failed survival roll; roll on the Mishap table."), r.notes.push(`${c ? "Passed" : "Failed"} survival in ${s.name ?? t.career_id}.`), { career: s, roll: l, survived: c, character: r };
   }
   eventRoll(e) {
@@ -394,13 +401,13 @@ class I {
     return t.mishap = n, t.survived = !1, t.events.push(n), this.applyInlineEventEffects(r, t, n), r.force_career_end = !0, r.notes.push(`Career mishap: ${n}`), { career: s, roll: i, mishap: n, character: r };
   }
   advancementRoll(e) {
-    const r = h(e), t = this.requireCurrentTerm(r), s = this.rules.career(t.career_id), n = s.assignments[t.assignment_id].advancement ?? {}, a = this.checkDm(r, n) + r.dm_next_advancement + r.dm_permanent_advancement + Number(r.permanent_advancement_dm_by_career[t.career_id] ?? 0), l = this.roller.roll2D(a), c = l.total >= Number(n.target ?? 0);
+    const r = h(e), t = this.requireCurrentTerm(r), s = this.rules.career(t.career_id), i = s.assignments[t.assignment_id], n = s.advancement ?? i.advancement ?? {}, a = this.checkDm(r, n) + r.dm_next_advancement + r.dm_permanent_advancement + Number(r.permanent_advancement_dm_by_career[t.career_id] ?? 0), l = this.roller.roll2D(a), c = l.total >= Number(n.target ?? 0);
     return t.advanced = c, t.advancement_roll_total = l.total, r.dm_next_advancement = 0, c && (t.rank = Math.min(6, t.rank + 1), t.rank_title = this.rankTitle(s, t.commissioned, t.rank), this.applyRankBonus(r, s, t)), r.notes.push(`${c ? "Advanced" : "Did not advance"} in ${s.name ?? t.career_id}.`), { career: s, roll: l, advanced: c, character: r };
   }
   commissionRoll(e) {
     const r = h(e), t = this.requireCurrentTerm(r), s = this.rules.career(t.career_id), i = s.commission;
     if (!i) throw new Error(`${s.name ?? t.career_id} does not have commission rolls.`);
-    if (t.commissioned || r.term_history.some((p) => p.career_id === t.career_id && p.commissioned))
+    if (t.commissioned || r.term_history.some((_) => _.career_id === t.career_id && _.commissioned))
       throw new Error("Already commissioned in this career.");
     if (t.term_number > 1 && f(r, "SOC") < 9) throw new Error("Commission after the first term requires SOC 9+.");
     const n = -(t.term_number - 1), a = r.academy_commission_career_id === t.career_id ? r.academy_commission_dm : 0, l = r.completed_careers.length === 0 ? Number(r.pre_career_permanent_dms.first_career_commission_dm ?? 0) : 0, c = this.checkDm(r, i) + n + a + l + r.dm_next_advancement + r.dm_permanent_advancement, u = this.roller.roll2D(c), d = u.total >= Number(i.target ?? 8);
@@ -411,7 +418,7 @@ class I {
     s.term_history.push(i), s.total_terms += 1, s.age += 4;
     const a = this.applyAgingIfNeeded(s);
     if (s.current_term = null, s.failed_qualifications_this_term = 0, r || s.force_career_end || i.survived === !1) {
-      const c = s.term_history.filter((d) => d.career_id === i.career_id).length, u = this.benefitRollsEarned(c, i.rank, i.benefit_forfeited);
+      const c = s.term_history.filter((d) => d.career_id === i.career_id).length, u = n.mustering_out === null ? 0 : this.benefitRollsEarned(c * Number(n.mustering_out_rolls_per_term ?? 1), i.rank, i.benefit_forfeited);
       s.pending_benefit_rolls += u, s.completed_careers.push({
         career_id: i.career_id,
         assignment_id: i.assignment_id,
@@ -427,12 +434,14 @@ class I {
     return s.notes.push(`Ended ${n.name ?? i.career_id} term ${i.term_number}.`), { career: n, term: i, aging: a, character: s };
   }
   musterOutRoll(e, r, t = "benefit") {
-    var p;
-    const s = h(e), i = r ? [...s.completed_careers].reverse().find((_) => _.career_id === r) : s.completed_careers[s.completed_careers.length - 1];
+    var L;
+    const s = h(e), i = r ? [...s.completed_careers].reverse().find((E) => E.career_id === r) : s.completed_careers[s.completed_careers.length - 1];
     if (!i) throw new Error("No completed career to muster out from.");
     if (s.pending_benefit_rolls <= 0) throw new Error("No pending benefit rolls.");
-    const n = this.rules.career(i.career_id), a = this.roller.rollD(6), l = Math.max(1, Math.min(7, a.total + s.dm_next_benefit)), c = ((p = n.mustering_out) == null ? void 0 : p[String(l)]) ?? {}, u = t === "cash" && s.cash_rolls_used < 3 && c.cash != null ? "cash" : "benefit", d = c[u];
-    return u === "cash" ? (s.credits += Number(d ?? 0), s.cash_rolls_used += 1) : this.applyMusterBenefit(s, String(d ?? "Benefit")), s.pending_benefit_rolls -= 1, i.benefit_rolls_used += 1, s.dm_next_benefit = 0, s.pending_benefit_rolls <= 0 && (s.phase = "skill_package"), s.notes.push(`Mustering out ${u}: ${d}.`), { career: n, roll: a, tableRoll: l, column: u, result: d, character: s };
+    const n = this.rules.career(i.career_id);
+    if (n.mustering_out === null) throw new Error(`${n.name ?? i.career_id} grants no mustering-out benefits.`);
+    const a = i.final_rank >= 5 ? 1 : 0, l = t === "cash" && s.skills.some((E) => E.name.toLowerCase() === "gambler") ? 1 : 0, c = n.mustering_out_dm_characteristic ? O(f(s, n.mustering_out_dm_characteristic)) : 0, u = s.dm_next_benefit + a + l + c, d = n.hiver_career ? this.roller.roll2D(u) : this.roller.rollD(6), _ = Object.keys(n.mustering_out ?? {}).filter((E) => /^\d+$/.test(E)).map(Number), p = Math.min(..._, n.hiver_career ? 2 : 1), m = Math.max(..._, 7), y = Math.max(p, Math.min(m, d.total + (n.hiver_career ? 0 : u))), $ = ((L = n.mustering_out) == null ? void 0 : L[String(y)]) ?? {}, k = t === "cash" && s.cash_rolls_used < 3 && $.cash != null ? "cash" : "benefit", S = $[k];
+    return k === "cash" ? (s.credits += Number(S ?? 0), s.cash_rolls_used += 1) : this.applyMusterBenefit(s, String(S ?? "Benefit")), s.pending_benefit_rolls -= 1, i.benefit_rolls_used += 1, s.dm_next_benefit = 0, s.pending_benefit_rolls <= 0 && (s.phase = "skill_package"), s.notes.push(`Mustering out ${k}: ${S}.`), { career: n, roll: d, tableRoll: y, column: k, result: S, character: s };
   }
   applyInjury(e, r) {
     var l;
@@ -444,17 +453,17 @@ class I {
     if (!s) throw new Error("No pending injury choice.");
     const i = s.choices;
     if (i != null && i.length && !i.includes(r)) throw new Error(`${r} is not a valid injury choice.`);
-    const n = Number(s.damage_to_chosen ?? 0), a = Number(s.auto_reduce_others ?? 0), l = ["STR", "DEX", "END"].filter((_) => _ !== r), c = Math.min(f(t, r), n), u = l.map((_) => ({ stat: _, loss: Math.min(f(t, _), a) })).filter((_) => _.loss > 0), d = c + u.reduce((_, m) => _ + m.loss, 0), p = d * 5e3;
+    const n = Number(s.damage_to_chosen ?? 0), a = Number(s.auto_reduce_others ?? 0), l = ["STR", "DEX", "END"].filter((p) => p !== r), c = Math.min(f(t, r), n), u = l.map((p) => ({ stat: p, loss: Math.min(f(t, p), a) })).filter((p) => p.loss > 0), d = c + u.reduce((p, m) => p + m.loss, 0), _ = d * 5e3;
     return t.pending_injury_treatment_choice = {
       chosen_stat: r,
       damage_to_chosen: n,
       auto_reduce_others: a,
       secondary_losses: u,
       total_loss: d,
-      gross_debt: p,
-      net_debt: p,
+      gross_debt: _,
+      net_debt: _,
       title: s.title ?? "Injury"
-    }, t.pending_injury_choice = null, { chosenStat: r, totalLoss: d, grossDebt: p, character: t };
+    }, t.pending_injury_choice = null, { chosenStat: r, totalLoss: d, grossDebt: _, character: t };
   }
   resolveInjuryPayment(e, r) {
     const t = h(e), s = t.pending_injury_treatment_choice;
@@ -470,18 +479,18 @@ class I {
     return t.pending_injury_treatment_choice = null, t.notes.push(r ? "Paid for injury treatment." : "Accepted injury characteristic loss."), { paid: r, character: t };
   }
   checkDm(e, r) {
-    let t = M(f(e, r == null ? void 0 : r.characteristic));
+    let t = O(f(e, r == null ? void 0 : r.characteristic));
     for (const s of (r == null ? void 0 : r.modifiers) ?? [])
       s.type === "per_previous_term" && (t += Number(s.dm ?? 0) * e.total_terms), s.type === "per_previous_career" && (t += Number(s.dm ?? 0) * e.completed_careers.length), s.type === "characteristic_threshold" && f(e, s.characteristic) >= Number(s.threshold ?? 0) && (t += Number(s.dm ?? 0));
     return t;
   }
   applyStatBlock(e, r) {
     for (const [t, s] of Object.entries(r))
-      (N.includes(t) || t === "PSI" || t === "CHA") && (g(e, t, f(e, t) + Number(s)), t === "PSI" && (e.psi = f(e, "PSI")));
+      (A.includes(t) || t === "PSI" || t === "CHA") && (g(e, t, f(e, t) + Number(s)), t === "PSI" && (e.psi = f(e, "PSI")));
   }
   applyPreCareerOutcome(e, r, t, s) {
-    var l, c, u, d, p, _;
-    this.applyStatBlock(e, t), t.EDU_penalty_dice === "D3" && g(e, "EDU", f(e, "EDU") - this.roller.d3()), t.jack_of_all_trades && k(e, "Jack-of-All-Trades", Number(t.jack_of_all_trades), null, !0), this.applySkillResults(e, t.fixed_skills ?? [], 1);
+    var l, c, u, d, _, p;
+    this.applyStatBlock(e, t), t.EDU_penalty_dice === "D3" && g(e, "EDU", f(e, "EDU") - this.roller.d3()), t.jack_of_all_trades && v(e, "Jack-of-All-Trades", Number(t.jack_of_all_trades), null, !0), this.applySkillResults(e, t.fixed_skills ?? [], 1);
     const i = ((l = e.pre_career_status) == null ? void 0 : l.skill_pool) ?? this.preCareerSkillPool(r, null, null), n = Number(t.skills_at_level_1 ?? 0) + Number(t.skills_upgrade_from_enrollment ?? 0) + Number(t.skills_from_enrollment_1 ?? 0);
     this.applyChosenSkills(e, s, i, n, 1), this.applyChosenSkills(e, s.slice(n), i, Number(t.additional_skills_from_enrollment_0 ?? 0), 0);
     for (const m of t.associates ?? [])
@@ -493,10 +502,10 @@ class I {
       for (const m of this.rules.careerList()) e.permanent_qualification_dm_by_career[m.id] = Number(a.qualification_dm);
       for (const m of a.bonus_qualify_careers ?? []) e.permanent_qualification_dm_by_career[m] = Number(a.bonus_qualify_dm ?? 0);
     }
-    a.psion_career_auto_entry && e.auto_qualify_career_ids.push("psion"), t.auto_entry && ((c = e.pre_career_status) != null && c.career_id) && (e.auto_entry_career_id = String(e.pre_career_status.career_id)), t.commission_dm && ((u = e.pre_career_status) != null && u.career_id) && (e.academy_commission_career_id = String(e.pre_career_status.career_id), e.academy_commission_dm = Number(t.commission_dm)), t.starts_commissioned_rank && ((d = e.pre_career_status) != null && d.career_id) && (e.starts_commissioned_career_id = String(e.pre_career_status.career_id), e.starts_commissioned_rank = Number(t.starts_commissioned_rank)), (p = t.permanent) != null && p.auto_rank && ((_ = e.pre_career_status) != null && _.career_id) && (e.starts_commissioned_career_id = String(e.pre_career_status.career_id), e.starts_commissioned_rank = Number(t.permanent.auto_rank), e.auto_entry_career_id = String(e.pre_career_status.career_id));
+    a.psion_career_auto_entry && e.auto_qualify_career_ids.push("psion"), t.auto_entry && ((c = e.pre_career_status) != null && c.career_id) && (e.auto_entry_career_id = String(e.pre_career_status.career_id)), t.commission_dm && ((u = e.pre_career_status) != null && u.career_id) && (e.academy_commission_career_id = String(e.pre_career_status.career_id), e.academy_commission_dm = Number(t.commission_dm)), t.starts_commissioned_rank && ((d = e.pre_career_status) != null && d.career_id) && (e.starts_commissioned_career_id = String(e.pre_career_status.career_id), e.starts_commissioned_rank = Number(t.starts_commissioned_rank)), (_ = t.permanent) != null && _.auto_rank && ((p = e.pre_career_status) != null && p.career_id) && (e.starts_commissioned_career_id = String(e.pre_career_status.career_id), e.starts_commissioned_rank = Number(t.permanent.auto_rank), e.auto_entry_career_id = String(e.pre_career_status.career_id));
   }
   preCareerSkillPool(e, r, t) {
-    const s = U(e);
+    const s = z(e);
     return [
       ...e.skill_list ?? [],
       ...s,
@@ -508,8 +517,8 @@ class I {
   applyChosenSkills(e, r, t, s, i) {
     const n = Array.isArray(r) ? r.map(String) : typeof r == "string" ? r.split(",").map((c) => c.trim()).filter(Boolean) : [], a = n.length ? n : t, l = [];
     for (const c of a.slice(0, Math.max(0, s))) {
-      const u = t.find((m) => m.toLowerCase() === c.toLowerCase()) ?? c, [d, p, _] = C(/\d+$/.test(u.trim()) ? u : `${u} ${i}`);
-      l.push(k(e, d, _, p, !0));
+      const u = t.find((m) => m.toLowerCase() === c.toLowerCase()) ?? c, [d, _, p] = D(/\d+$/.test(u.trim()) ? u : `${u} ${i}`);
+      l.push(v(e, d, p, _, !0));
     }
     return l;
   }
@@ -535,8 +544,8 @@ class I {
     return e.current_term;
   }
   rankTrack(e, r) {
-    var t, s, i, n, a;
-    return r && ((t = e.ranks) != null && t.officer) ? e.ranks.officer : !r && ((s = e.ranks) != null && s.enlisted) ? e.ranks.enlisted : ((i = e.ranks) == null ? void 0 : i.default) ?? ((n = e.ranks) == null ? void 0 : n.enlisted) ?? ((a = e.ranks) == null ? void 0 : a.officer) ?? {};
+    var t, s, i, n, a, l;
+    return r && ((t = e.ranks) != null && t.officer) ? e.ranks.officer : !r && ((s = e.ranks) != null && s.enlisted) ? e.ranks.enlisted : ((i = e.ranks) == null ? void 0 : i.default) ?? ((n = e.ranks) == null ? void 0 : n.all) ?? ((a = e.ranks) == null ? void 0 : a.enlisted) ?? ((l = e.ranks) == null ? void 0 : l.officer) ?? {};
   }
   rankTitle(e, r, t) {
     var s, i;
@@ -569,8 +578,8 @@ class I {
     }
     const n = s.replace(/\s*\((?:any|Small Craft or Spacecraft|riding or Training)\)\s*/i, "").trim();
     if (!n) return null;
-    const [a, l, c] = C(/\d+$/.test(n) ? n : `${n} ${t}`), u = typeof l == "string" && l.toLowerCase() === "any" ? null : l;
-    return k(e, F(a), c, u, !0);
+    const [a, l, c] = D(/\d+$/.test(n) ? n : `${n} ${t}`), u = typeof l == "string" && l.toLowerCase() === "any" ? null : l;
+    return v(e, G(a), c, u, !0);
   }
   applyInlineEventEffects(e, r, t) {
     const s = t.match(/DM\+(\d+) to (?:any one |your next )Benefit/i);
@@ -582,15 +591,15 @@ class I {
     }
     const n = [...t.matchAll(/\b([A-Z][A-Za-z-]+(?:\s+[A-Z][A-Za-z-]+)?(?:\s+\([^)]+\))?)\s+(\d)\b/g)];
     for (const a of n.slice(0, 2)) {
-      const [l, c, u] = C(`${a[1]} ${a[2]}`);
+      const [l, c, u] = D(`${a[1]} ${a[2]}`);
       if (["Roll", "Gain", "Table", "DM"].includes(l)) continue;
-      const d = k(e, l, u, c, !0);
+      const d = v(e, l, u, c, !0);
       r.skills_gained.push(d);
     }
     /Gain (?:a|one) Contact/i.test(t) && e.associates.push({ kind: "contact", description: `Contact from ${r.career_id} event` }), /Gain (?:an|one) Ally/i.test(t) && e.associates.push({ kind: "ally", description: `Ally from ${r.career_id} event` }), /Gain (?:an|one) Enemy/i.test(t) && e.associates.push({ kind: "enemy", description: `Enemy from ${r.career_id} event` }), /Gain (?:a|one) Rival/i.test(t) && e.associates.push({ kind: "rival", description: `Rival from ${r.career_id} event` });
   }
   applyPreCareerEventEffects(e, r, t, s) {
-    if (/Carouse 1/i.test(t) && k(e, "Carouse", 1, null, !0), /Increase your SOC by \+1/i.test(t) && g(e, "SOC", f(e, "SOC") + 1), /Gain D3 Allies/i.test(t)) {
+    if (/Carouse 1/i.test(t) && v(e, "Carouse", 1, null, !0), /Increase your SOC by \+1/i.test(t) && g(e, "SOC", f(e, "SOC") + 1), /Gain D3 Allies/i.test(t)) {
       const i = this.roller.d3();
       for (let n = 0; n < i; n++) e.associates.push({ kind: "ally", description: "Ally from pre-career education" });
     }
@@ -663,7 +672,7 @@ class I {
     return t;
   }
   finalizeRobot(e) {
-    const r = E();
+    const r = T();
     return r.character_type = "robot", r.robot_config = e, r.name = String(e.name ?? "Traveller Robot"), r.age = 0, r.characteristics = {
       STR: Number(e.STR ?? 0),
       DEX: Number(e.DEX ?? 0),
@@ -674,25 +683,25 @@ class I {
     }, r.phase = "done", r.notes.push("Created robot placeholder from supplied robot configuration."), { character: r };
   }
   generateNpc() {
-    let e = E();
+    let e = T();
     return e.name = "Generated Traveller", e = this.rollInitialCharacteristics(e).character, e = this.chooseSociety(e, "third_imperium").character, e = this.applySpecies(e, "imperial_human").character, e = this.applyBackgroundSkills(e, ["Admin", "Streetwise", "Vacc Suit"]).character, e = this.applyCareerPackage(e, "scout").character, e.phase = "done", { character: e };
   }
 }
-function x(o) {
+function R(o) {
   const e = o.match(/^(.+?)\s*\((.+)\)\s*$/);
   return e ? [e[1].trim(), e[2].trim()] : [o.trim(), null];
 }
-function C(o) {
-  const e = o.trim(), r = e.match(/\s+(\d+)$/), t = r ? Number(r[1]) : 1, s = r ? e.slice(0, r.index).trim() : e, [i, n] = x(s);
+function D(o) {
+  const e = o.trim(), r = e.match(/\s+(\d+)$/), t = r ? Number(r[1]) : 1, s = r ? e.slice(0, r.index).trim() : e, [i, n] = R(s);
   return [i, n, t];
 }
-function U(o) {
+function z(o) {
   return [...o.skill_list_male ?? [], ...o.skill_list_female ?? []].map(String);
 }
-function F(o) {
+function G(o) {
   return o === "Jack-of-all-Trades" || o === "Jack-of-all-trades" ? "Jack-of-All-Trades" : o.trim();
 }
-const z = [
+const H = [
   "aging",
   "aslan_background",
   "aslan_life_events",
@@ -717,7 +726,7 @@ const z = [
   "vargr_extents_life_events",
   "zhodani_life_events"
 ];
-class G {
+class V {
   constructor(e) {
     this.bundle = e;
   }
@@ -752,34 +761,34 @@ class G {
     return this.careerList().filter((t) => r.has(t.id));
   }
 }
-async function H(o) {
+async function X(o) {
   const e = o.replace(/\/$/, ""), [r, t, s, i] = await Promise.all([
-    P(`${e}/species/index.json`, `${e}/species`),
-    P(`${e}/careers/index.json`, `${e}/careers`),
-    V(e),
-    D(`${e}/catalog.json`)
+    B(`${e}/species/index.json`, `${e}/species`),
+    B(`${e}/careers/index.json`, `${e}/careers`),
+    Y(e),
+    x(`${e}/catalog.json`)
   ]);
-  return new G({ species: r, careers: t, tables: s, catalog: i });
+  return new V({ species: r, careers: t, tables: s, catalog: i });
 }
-async function V(o) {
-  const e = await Promise.all(z.map(async (r) => [r, await D(`${o}/tables/${r}.json`)]));
+async function Y(o) {
+  const e = await Promise.all(H.map(async (r) => [r, await x(`${o}/tables/${r}.json`)]));
   return Object.fromEntries(e);
 }
-async function P(o, e) {
-  const r = await D(o), t = [];
+async function B(o, e) {
+  const r = await x(o), t = [];
   for (const s of r) {
-    const i = await D(`${e}/${s}`), n = Array.isArray(i) ? i : [i];
+    const i = await x(`${e}/${s}`), n = Array.isArray(i) ? i : [i];
     for (const a of n)
       a != null && a.deprecated || a != null && a.id && t.push([a.id, a]);
   }
   return Object.fromEntries(t);
 }
-async function D(o) {
+async function x(o) {
   const e = await fetch(o);
   if (!e.ok) throw new Error(`Failed to load ${o}: ${e.status} ${e.statusText}`);
   return e.json();
 }
-const X = {
+const J = {
   admin: "admin",
   advocate: "advocate",
   animals: "animals",
@@ -830,7 +839,7 @@ const X = {
   telekinesis: "telekinesis",
   awareness: "awareness",
   teleportation: "teleportation"
-}, Y = {
+}, K = {
   strength: "strength",
   dexterity: "dexterity",
   endurance: "endurance",
@@ -928,24 +937,24 @@ const X = {
   military: "military",
   naval: "naval"
 };
-function J(o) {
-  return X[A(o)];
+function W(o) {
+  return J[j(o)];
 }
-function K(o) {
+function Z(o) {
   if (o)
-    return Y[A(o)] ?? A(o).replace(/[^a-z0-9]/g, "");
+    return K[j(o)] ?? j(o).replace(/[^a-z0-9]/g, "");
 }
-function A(o) {
+function j(o) {
   return o.trim().toLowerCase();
 }
-function W(o, e = {}) {
-  const r = e.entryYear ?? 1105, t = Z(o), s = Object.fromEntries(L.map((l) => {
+function Q(o, e = {}) {
+  const r = e.entryYear ?? 1105, t = ee(o), s = Object.fromEntries(I.map((l) => {
     const c = l === "PSI" && o.psi || f(o, l);
-    return [l, { value: c, current: c, show: re(l, c), default: !1 }];
+    return [l, { value: c, current: c, show: ie(l, c), default: !1 }];
   })), i = o.characteristics.STR + o.characteristics.DEX + o.characteristics.END, n = [
-    ...Q(o),
-    ...ee(o),
-    ...te(o)
+    ...te(o),
+    ...re(o),
+    ...se(o)
   ], a = o.name || "Unnamed Traveller";
   return {
     name: a,
@@ -961,7 +970,7 @@ function W(o, e = {}) {
       maxLoad: o.characteristics.STR * 20,
       modifiers: {},
       hits: { value: i, max: i, damage: 0, tmpDamage: 0 },
-      description: o.capsule_description ? ie(o.capsule_description) : "",
+      description: o.capsule_description ? ae(o.capsule_description) : "",
       settings: {
         hideUntrained: !1,
         onlyBackground: !1,
@@ -978,12 +987,12 @@ function W(o, e = {}) {
       damage: { STR: { value: 0 }, DEX: { value: 0 }, END: { value: 0, tmp: 0 } },
       sophont: {
         age: String(o.age),
-        species: w(o.species_id.replaceAll("_", " ")),
+        species: C(o.species_id.replaceAll("_", " ")),
         speciesTraits: o.traits.map((l) => l.name ?? l.id ?? "").filter(Boolean).join(", "),
         gender: o.gender || "Unknown",
         weight: 0,
         height: 0,
-        profession: se(o),
+        profession: ne(o),
         homeworld: o.homeworld
       },
       finance: {
@@ -1024,15 +1033,15 @@ function W(o, e = {}) {
     }
   };
 }
-function Z(o) {
+function ee(o) {
   const e = {};
   for (const r of o.skills) {
-    const t = J(r.name);
+    const t = W(r.name);
     if (t)
       if (e[t] ?? (e[t] = { base: -1, specs: {} }), !r.speciality || r.speciality.toLowerCase() === "any")
         e[t].base = Math.max(e[t].base, r.level);
       else {
-        const s = K(r.speciality);
+        const s = Z(r.speciality);
         s && (e[t].specs[s] = Math.max(e[t].specs[s] ?? -1, r.level));
       }
   }
@@ -1041,7 +1050,7 @@ function Z(o) {
     return Object.keys(t.specs).length && (s.specialities = Object.fromEntries(Object.entries(t.specs).map(([i, n]) => [i, { id: i, value: String(n) }]))), [r, s];
   }));
 }
-function Q(o) {
+function te(o) {
   const e = {
     ally: { affinity: 3, enmity: 0, power: 2, influence: 2 },
     contact: { affinity: 3, enmity: 0, power: 0, influence: 4 },
@@ -1050,26 +1059,26 @@ function Q(o) {
   };
   return o.associates.map((r) => {
     const t = String(r.kind || "contact").toLowerCase(), s = e[t] ?? e.contact;
-    return O(r.description || `Unnamed ${w(t)}`, "associate", {
+    return P(r.description || `Unnamed ${C(t)}`, "associate", {
       associate: { relationship: t, ...s },
       relation: t,
       description: r.description
     });
   });
 }
-function ee(o) {
+function re(o) {
   return o.term_history.map((e, r) => {
-    const t = w(e.career_id.replaceAll("_", " ")), s = w(e.assignment_id.replaceAll("_", " ")), i = `${t}${s ? `: ${s}` : ""}${e.rank_title ? ` (${e.rank_title})` : ""}`, n = [i, ...e.events.map((a) => `* ${a}`)].join(`
+    const t = C(e.career_id.replaceAll("_", " ")), s = C(e.assignment_id.replaceAll("_", " ")), i = `${t}${s ? `: ${s}` : ""}${e.rank_title ? ` (${e.rank_title})` : ""}`, n = [i, ...e.events.map((a) => `* ${a}`)].join(`
 `);
-    return O(`Term ${r + 1}: ${i}`, "term", {
+    return P(`Term ${r + 1}: ${i}`, "term", {
       term: { number: r + 1, termLength: 4, assignment: i, randomTerm: !1, randomLength: "" },
       name: "Term",
       description: n
     }, "systems/mgt2e/icons/misc/career.svg");
   });
 }
-function te(o) {
-  return o.equipment.map((e) => O(e.name, "item", {
+function se(o) {
+  return o.equipment.map((e) => P(e.name, "item", {
     tl: 0,
     weight: 0,
     cost: 0,
@@ -1081,13 +1090,13 @@ function te(o) {
     description: e.notes ?? ""
   }));
 }
-function O(o, e, r, t = "systems/mgt2e/icons/items/item.svg") {
+function P(o, e, r, t = "systems/mgt2e/icons/items/item.svg") {
   const s = Date.now();
   return {
     name: o,
     type: e,
     system: r,
-    _id: ae(),
+    _id: le(),
     img: t,
     effects: [],
     folder: null,
@@ -1107,35 +1116,35 @@ function O(o, e, r, t = "systems/mgt2e/icons/items/item.svg") {
     ownership: { default: 0 }
   };
 }
-function re(o, e) {
+function ie(o, e) {
   return ["STR", "DEX", "END", "INT", "EDU", "SOC"].includes(o) || o === "PSI" && e > 0;
 }
-function se(o) {
+function ne(o) {
   const e = o.completed_careers.at(-1);
   if (!e) return "";
-  const r = w(e.career_id.replaceAll("_", " ")), t = e.assignment_id && e.assignment_id !== "career_package" ? w(e.assignment_id.replaceAll("_", " ")) : "";
+  const r = C(e.career_id.replaceAll("_", " ")), t = e.assignment_id && e.assignment_id !== "career_package" ? C(e.assignment_id.replaceAll("_", " ")) : "";
   return t ? `${r}: ${t}` : r;
 }
-function ie(o) {
-  return `<p>${ne(o).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`;
+function ae(o) {
+  return `<p>${oe(o).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`;
 }
-function ne(o) {
+function oe(o) {
   return o.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
-function w(o) {
+function C(o) {
   return o.replace(/\w\S*/g, (e) => e.charAt(0).toUpperCase() + e.slice(1).toLowerCase());
 }
-function ae() {
+function le() {
   return crypto.getRandomValues(new Uint32Array(2)).reduce((o, e) => o + e.toString(16).padStart(8, "0"), "").slice(0, 16);
 }
-class oe {
+class ce {
   constructor() {
     this.sourceVersion = "unknown";
   }
   async initialize(e) {
     this.appClass = e;
     const r = "modules/traveller-character-creator/data";
-    this.rules = await H(r), this.engine = new I(this.rules);
+    this.rules = await X(r), this.engine = new F(this.rules);
     try {
       const t = await fetch("modules/traveller-character-creator/SOURCE_VERSION");
       t.ok && (this.sourceVersion = (await t.text()).trim());
@@ -1149,11 +1158,11 @@ class oe {
     return r.render(!0), r;
   }
   newCharacter() {
-    return E();
+    return T();
   }
   exportActorData(e, r = {}) {
     const t = Number(r.entryYear ?? game.settings.get("traveller-character-creator", "defaultEntryYear"));
-    return W(e, { sourceVersion: this.sourceVersion, entryYear: t });
+    return Q(e, { sourceVersion: this.sourceVersion, entryYear: t });
   }
   async createActor(e, r = {}) {
     var i, n;
@@ -1161,7 +1170,7 @@ class oe {
     return game.settings.get("traveller-character-creator", "autoOpenCreatedActor") && ((i = s.sheet) == null || i.render(!0)), (n = ui.notifications) == null || n.info(`Created Traveller actor: ${s.name}`), s;
   }
 }
-function le() {
+function ue() {
   game.settings.register("traveller-character-creator", "defaultEntryYear", {
     name: "Default Entry Year",
     hint: "The campaign year used for generated actor date fields.",
@@ -1185,7 +1194,7 @@ function le() {
     default: !0
   });
 }
-const { ApplicationV2: ce, HandlebarsApplicationMixin: ue } = foundry.applications.api, y = class y extends ue(ce) {
+const { ApplicationV2: de, HandlebarsApplicationMixin: _e } = foundry.applications.api, b = class b extends _e(de) {
   constructor(e, r = {}) {
     super(r), this.api = e, this.character = this.loadDraft() ?? e.newCharacter();
   }
@@ -1237,24 +1246,24 @@ const { ApplicationV2: ce, HandlebarsApplicationMixin: ue } = foundry.applicatio
     this.character = this.api.newCharacter(), this.clearDraft(), this.render();
   }
   saveDraft() {
-    game.settings.get("traveller-character-creator", "persistDrafts") && localStorage.setItem($(), JSON.stringify(this.character));
+    game.settings.get("traveller-character-creator", "persistDrafts") && localStorage.setItem(N(), JSON.stringify(this.character));
   }
   loadDraft() {
     var r;
     if (!game.settings.get("traveller-character-creator", "persistDrafts")) return null;
-    const e = localStorage.getItem($());
+    const e = localStorage.getItem(N());
     if (!e) return null;
     try {
       return JSON.parse(e);
     } catch {
-      return (r = ui.notifications) == null || r.warn("Traveller Creator draft was unreadable and has been reset."), localStorage.removeItem($()), null;
+      return (r = ui.notifications) == null || r.warn("Traveller Creator draft was unreadable and has been reset."), localStorage.removeItem(N()), null;
     }
   }
   clearDraft() {
-    localStorage.removeItem($());
+    localStorage.removeItem(N());
   }
 };
-y.DEFAULT_OPTIONS = {
+b.DEFAULT_OPTIONS = {
   id: "traveller-character-creator",
   tag: "form",
   window: {
@@ -1263,31 +1272,31 @@ y.DEFAULT_OPTIONS = {
     resizable: !0
   },
   position: { width: 760, height: 720 },
-  form: { handler: y.onSubmit, submitOnChange: !1, closeOnSubmit: !1 },
+  form: { handler: b.onSubmit, submitOnChange: !1, closeOnSubmit: !1 },
   actions: {
-    roll: y.roll,
-    chooseSociety: y.chooseSociety,
-    applySpecies: y.applySpecies,
-    applyBackgroundPackage: y.applyBackgroundPackage,
-    applyCareerPackage: y.applyCareerPackage,
-    applySkillPackage: y.applySkillPackage,
-    createActor: y.createActor,
-    reset: y.reset
+    roll: b.roll,
+    chooseSociety: b.chooseSociety,
+    applySpecies: b.applySpecies,
+    applyBackgroundPackage: b.applyBackgroundPackage,
+    applyCareerPackage: b.applyCareerPackage,
+    applySkillPackage: b.applySkillPackage,
+    createActor: b.createActor,
+    reset: b.reset
   }
-}, y.PARTS = {
+}, b.PARTS = {
   body: { template: "modules/traveller-character-creator/templates/creator.hbs" }
 };
-let q = y;
-function $() {
+let M = b;
+function N() {
   var o, e;
   return `traveller-character-creator.${((o = game.world) == null ? void 0 : o.id) ?? "world"}.${((e = game.user) == null ? void 0 : e.id) ?? "user"}.draft`;
 }
 Hooks.once("init", () => {
-  le(), Handlebars.registerHelper("eq", (o, e) => o === e);
+  ue(), Handlebars.registerHelper("eq", (o, e) => o === e);
 });
 Hooks.once("ready", async () => {
-  const o = new oe();
-  await o.initialize(q), game.travellerCreator = o;
+  const o = new ce();
+  await o.initialize(M), game.travellerCreator = o;
 });
 Hooks.on("renderActorDirectory", (o, e) => {
   var s;
