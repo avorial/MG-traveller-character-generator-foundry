@@ -473,6 +473,14 @@ export class TravellerLifepathEngine {
     return { choice, character: next };
   }
 
+  resolveCareerEventChoice(character: TravellerCharacter, choice: string): EngineResult {
+    return this.resolveCareerChoice(character, "event", choice);
+  }
+
+  resolveCareerMishapChoice(character: TravellerCharacter, choice: string): EngineResult {
+    return this.resolveCareerChoice(character, "mishap", choice);
+  }
+
   mishapRoll(character: TravellerCharacter): EngineResult {
     const next = cloneCharacter(character);
     const term = this.requireCurrentTerm(next);
@@ -877,6 +885,14 @@ export class TravellerLifepathEngine {
     if (/Gain (?:an|one) Ally/i.test(text)) character.associates.push({ kind: "ally", description: `Ally from ${term.career_id} event` });
     if (/Gain (?:an|one) Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: `Enemy from ${term.career_id} event` });
     if (/Gain (?:a|one) Rival/i.test(text)) character.associates.push({ kind: "rival", description: `Rival from ${term.career_id} event` });
+    const oneOf = extractOneOfSkillOptions(text);
+    if (oneOf.length) {
+      character.pending_career_event_choice = { kind: "skill_choice", options: oneOf, level: 1, prompt: text };
+    }
+    const check = extractSkillCheck(text);
+    if (check) {
+      character.pending_career_event_choice = { kind: "skill_check", ...check, prompt: text };
+    }
     if (/transfer to (?:the )?Marines/i.test(text)) character.pending_transfer_career_id = "marine";
     if (/transfer to (?:the )?Army/i.test(text)) character.pending_transfer_career_id = "army";
     if (/transfer to (?:the )?Confederation Army/i.test(text)) character.pending_transfer_career_id = "confederation_army";
@@ -907,12 +923,18 @@ export class TravellerLifepathEngine {
     }
     const choiceDrop = text.match(/Reduce (?:your )?(STR|DEX|END|INT|EDU|SOC|PSI|CHA|TER|RES|REP)(?: or (STR|DEX|END|INT|EDU|SOC|PSI|CHA|TER|RES|REP))? by (\d+)/i);
     if (choiceDrop) {
-      character.pending_career_mishap_choice = {
+      const pendingKey = mishap ? "pending_career_mishap_choice" : "pending_career_event_choice";
+      character[pendingKey] = {
         kind: "stat_choice",
         choices: [choiceDrop[1], choiceDrop[2]].filter(Boolean),
         amount: Number(choiceDrop[3]),
         prompt: text
       };
+    }
+    const oneOf = extractOneOfSkillOptions(text);
+    if (oneOf.length) {
+      const pendingKey = mishap ? "pending_career_mishap_choice" : "pending_career_event_choice";
+      if (character[pendingKey]?.kind !== "skill_check") character[pendingKey] = { kind: "skill_choice", options: oneOf, level: 1, prompt: text };
     }
     const rankDrop = text.match(/rank (?:is )?reduced by (?:−|-)(\d+)|lose one level of rank|demoted one Rank/i);
     if (rankDrop) {
@@ -990,6 +1012,49 @@ export class TravellerLifepathEngine {
 
   private isAslanLifeEventCharacter(character: TravellerCharacter): boolean {
     return character.species_id.includes("aslan") && character.current_term?.career_id !== "aslan_outcast";
+  }
+
+  private resolveCareerChoice(character: TravellerCharacter, source: "event" | "mishap", choice: string): EngineResult {
+    const next = cloneCharacter(character);
+    const key = source === "event" ? "pending_career_event_choice" : "pending_career_mishap_choice";
+    const pending = next[key];
+    if (!pending) throw new Error(`No pending career ${source} choice.`);
+    const kind = String(pending.kind ?? "");
+    if (kind === "skill_choice" || kind === "free_skill_choice") {
+      if (Array.isArray(pending.options) && pending.options.length && !pending.options.includes(choice)) throw new Error(`${choice} is not a valid choice.`);
+      const level = Number(pending.level ?? 1);
+      const [name, speciality, parsedLevel] = parseSkillGain(/\d+$/.test(choice) ? choice : `${choice} ${level}`);
+      addSkill(next, name, parsedLevel, speciality, true);
+    } else if (kind === "stat_choice") {
+      if (Array.isArray(pending.choices) && pending.choices.length && !pending.choices.includes(choice)) throw new Error(`${choice} is not a valid choice.`);
+      const stat = choice as CharacteristicKey;
+      setCharacteristic(next, stat, getCharacteristic(next, stat) - Number(pending.amount ?? 1));
+    } else if (kind === "skill_check") {
+      if (Array.isArray(pending.skills) && pending.skills.length && !pending.skills.includes(choice)) throw new Error(`${choice} is not a valid skill check.`);
+      const roll = this.roller.roll2D(this.skillDm(next, choice));
+      const succeeded = roll.total >= Number(pending.target ?? 8);
+      next.notes.push(`${choice} check ${succeeded ? "succeeded" : "failed"} (${roll.total}).`);
+      const successSkillOptions = Array.isArray(pending.successSkillOptions) ? pending.successSkillOptions : [];
+      if (succeeded && successSkillOptions.length) {
+        next.pending_career_event_choice = { kind: "skill_choice", options: successSkillOptions, level: 1, prompt: pending.prompt };
+        return { roll, succeeded, character: next };
+      }
+      if (!succeeded && /Mishap/i.test(String(pending.prompt ?? "")) && next.current_term) {
+        const result = this.mishapRoll(next);
+        Object.assign(next, result.character);
+      }
+    } else if (kind === "transfer") {
+      next.pending_transfer_career_id = choice;
+    }
+    next[key] = null;
+    return { choice, character: next };
+  }
+
+  private skillDm(character: TravellerCharacter, skillText: string): number {
+    const [name, speciality] = splitSkillSpeciality(skillText);
+    const exact = character.skills.find((skill) => skill.name === name && (skill.speciality ?? null) === speciality);
+    const base = character.skills.find((skill) => skill.name === name && !skill.speciality);
+    return exact?.level ?? base?.level ?? -3;
   }
 
   private applyPreCareerEventEffects(character: TravellerCharacter, rollTotal: number, text: string, aslan: boolean): void {
@@ -1245,4 +1310,30 @@ function musterChoiceOptions(text: string): string[] {
   }
   const options = text.split(/\s+or\s+/i).map((entry) => entry.trim()).filter(Boolean);
   return options.every((entry) => /\d$/.test(entry) || /^[A-Z][A-Za-z -]+(?:\s+\([^)]+\))?$/.test(entry)) ? options : [];
+}
+
+function extractOneOfSkillOptions(text: string): string[] {
+  const match = text.match(/Gain (?:one of |one level of |a level of )(.+?)(?:\.|, or transfer| or transfer|$)/i);
+  if (!match) return [];
+  const raw = match[1]
+    .replace(/^these skills by one level:\s*/i, "")
+    .replace(/^any of:\s*/i, "")
+    .replace(/\bat level 1\b/i, "")
+    .split(/\s+and\s+DM|\s+and\s+gain|\s+on failure/i)[0]
+    .trim();
+  if (/Benefit|Contact|Ally|Enemy|Rival|DM\+/i.test(raw)) return [];
+  return raw
+    .split(/,\s*|\s+or\s+/i)
+    .map((entry) => entry.replace(/\bone level in\b/i, "").trim())
+    .filter((entry) => /^[A-Z][A-Za-z -]+(?:\s+\([^)]+\))?(?:\s+1)?$/.test(entry))
+    .map((entry) => /\d$/.test(entry) ? entry : `${entry} 1`);
+}
+
+function extractSkillCheck(text: string): Record<string, unknown> | null {
+  const match = text.match(/Roll\s+([A-Z][A-Za-z -]+?(?:\s+\([^)]+\))?)\s+(\d+)\+(?:\s+or\s+([A-Z][A-Za-z -]+?(?:\s+\([^)]+\))?)\s+(\d+)\+)?/);
+  if (!match) return null;
+  const target = Number(match[2] ?? match[4] ?? 8);
+  const skills = [match[1], match[3]].filter(Boolean).map((entry) => String(entry).trim());
+  const successSkillOptions = extractOneOfSkillOptions(text);
+  return { skills, target, successSkillOptions };
 }

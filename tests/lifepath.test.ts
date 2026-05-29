@@ -237,4 +237,24 @@ describe("TravellerLifepathEngine", () => {
     expect(character.current_term?.survived).toBe(true);
     expect(character.age).toBe(18);
   });
+
+  it("creates and resolves career skill choices", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([4]));
+    let character = engine.freshCharacter();
+    character = engine.startTerm(character, "navy", "line_crew").character;
+    character = engine.eventRoll(character).character;
+    expect(character.pending_career_event_choice?.kind).toBe("skill_choice");
+    character = engine.resolveCareerEventChoice(character, "Survival 1").character;
+    expect(character.skills.find((skill) => skill.name === "Survival")?.level).toBe(1);
+  });
+
+  it("resolves career skill checks into follow-up skill choices", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([3, 11]));
+    let character = engine.freshCharacter();
+    character = engine.startTerm(character, "navy", "line_crew").character;
+    character = engine.eventRoll(character).character;
+    expect(character.pending_career_event_choice?.kind).toBe("skill_check");
+    character = engine.resolveCareerEventChoice(character, "Gunner").character;
+    expect(character.pending_career_event_choice?.kind).toBe("skill_choice");
+  });
 });
