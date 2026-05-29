@@ -59,6 +59,7 @@ export interface CareerTerm {
   basic_training: boolean;
   benefit_forfeited: boolean;
   survival_roll_total?: number | null;
+  advancement_roll_total?: number | null;
   cover_career_id?: string | null;
   frozen_watch: boolean;
 }
@@ -114,6 +115,16 @@ export interface TravellerCharacter {
   tas_member: boolean;
   pre_career_status: Record<string, unknown>;
   pre_career_permanent_dms: Record<string, unknown>;
+  auto_entry_career_id?: string | null;
+  auto_qualify_career_ids: string[];
+  starts_commissioned_career_id?: string | null;
+  starts_commissioned_rank?: number | null;
+  academy_commission_career_id?: string | null;
+  academy_commission_dm: number;
+  permanent_advancement_dm_by_career: Record<string, number>;
+  permanent_qualification_dm_by_career: Record<string, number>;
+  banned_career_ids: string[];
+  forced_next_career_id?: string | null;
   gender?: string | null;
   clan_shares: number;
   aslan_setup_status?: Record<string, unknown> | null;

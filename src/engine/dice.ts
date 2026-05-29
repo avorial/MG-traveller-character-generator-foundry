@@ -16,7 +16,13 @@ export class DiceRoller {
   }
 
   d6(): number {
+    if (this.forced.length) return this.forced.shift() ?? 1;
     return this.rollDie(6);
+  }
+
+  rollD(sides: number): RollResult {
+    const natural = this.forced.length ? this.forced.shift() ?? 1 : this.rollDie(sides);
+    return { dice: [], natural, total: natural, dm: 0 };
   }
 
   d3(): number {

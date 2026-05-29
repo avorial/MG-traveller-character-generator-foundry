@@ -1,6 +1,6 @@
 import { addSkill, cloneCharacter, CORE_CHARACTERISTICS, getCharacteristic, newCharacter, setCharacteristic } from "./character";
 import { characteristicDm, DiceRoller } from "./dice";
-import type { CharacteristicKey, RollResult, TravellerCharacter } from "./types";
+import type { CareerTerm, CharacteristicKey, RollResult, TravellerCharacter } from "./types";
 import type { RulesIndex } from "./rules";
 
 export interface EngineResult {
@@ -118,7 +118,7 @@ export class TravellerLifepathEngine {
     }
     for (const skill of pkg.skills ?? []) {
       const key = typeof skill === "string" ? skill : `${skill.name}${skill.speciality ? ` (${skill.speciality})` : ""}`;
-      const resolved = skillChoices[key] ?? skill;
+      const resolved: any = skillChoices[key] ?? skill;
       if (typeof resolved === "string") {
         const [name, speciality, level] = parseSkillGain(resolved);
         addSkill(next, name, level === 1 && !/\d+$/.test(resolved.trim()) ? 0 : level, speciality);
@@ -196,32 +196,490 @@ export class TravellerLifepathEngine {
     return { character: next };
   }
 
-  qualifyForCareer(): never {
-    throw new Error("Full career qualification is not ported yet. Use career packages until the parity career loop is implemented.");
+  qualifyForPreCareer(character: TravellerCharacter, trackId: string, options: Record<string, string> = {}): EngineResult {
+    const track = this.rules.table<any>("education").tracks?.[trackId];
+    if (!track) throw new Error(`Unknown pre-career track: ${trackId}`);
+    const next = cloneCharacter(character);
+    const service = options.service ? track.services?.[options.service] : null;
+    const curriculum = options.curriculum ? track.curricula?.[options.curriculum] : null;
+    const qualification = service?.qualification ?? track.qualification ?? {};
+    const dm = this.checkDm(next, qualification);
+    const roll = qualification.automatic ? null : this.roller.roll2D(dm);
+    const qualified = qualification.automatic || Boolean(roll && roll.total >= Number(qualification.target ?? 0));
+
+    if (!qualified) {
+      next.phase = "career";
+      next.notes.push(`Failed ${track.name ?? trackId} qualification${roll ? ` (${roll.total})` : ""}.`);
+      return { track, roll, qualified, character: next };
+    }
+
+    this.applyStatBlock(next, track.enrollment_bonus ?? {});
+    this.applySkillResults(next, track.enrollment_auto_skills ?? [], 0);
+    const skillPool = this.preCareerSkillPool(track, service, curriculum);
+    const picked = this.applyChosenSkills(next, options.skills, skillPool, Number(track.enrollment_skill_picks ?? 0), Number(track.enrollment_pick_level ?? 0));
+
+    if (curriculum?.enrollment_skill_table) {
+      const gain = this.rollOnExternalSkillTable(next, curriculum.enrollment_skill_table.career, curriculum.enrollment_skill_table.table);
+      if (gain) picked.push(gain);
+    }
+    for (let i = 0; i < Number(track.enrollment_service_skill_random ?? 0); i++) {
+      const gain = this.rollOnExternalSkillTable(next, service?.career_id ?? "merchant", "service_skills");
+      if (gain) picked.push(gain);
+    }
+    if (qualification.requires_psi_test && !next.psi_tested) {
+      const psiRoll = this.roller.roll2D();
+      next.psi = psiRoll.total;
+      setCharacteristic(next, "PSI", psiRoll.total);
+      next.psi_tested = true;
+    }
+
+    next.pre_career_status = {
+      track_id: trackId,
+      service_id: service?.id ?? options.service ?? null,
+      career_id: service?.career_id ?? null,
+      curriculum_id: curriculum?.id ?? options.curriculum ?? null,
+      enrolled: true,
+      skill_pool: skillPool,
+      enrollment_skills: picked
+    };
+    next.phase = "pre_career";
+    next.notes.push(`Qualified for ${track.name ?? trackId}.`);
+    return { track, roll, qualified, character: next };
   }
 
-  startTerm(): never {
-    throw new Error("Term-by-term career creation is not ported yet. Use career packages until the parity career loop is implemented.");
+  graduatePreCareer(character: TravellerCharacter, chosenSkills: string[] = []): EngineResult {
+    const status = character.pre_career_status ?? {};
+    const trackId = String(status.track_id ?? "");
+    const track = this.rules.table<any>("education").tracks?.[trackId];
+    if (!track) throw new Error("No active pre-career track to graduate.");
+    const next = cloneCharacter(character);
+    const graduation = track.graduation ?? {};
+    const dm = this.checkDm(next, graduation);
+    const roll = this.roller.roll2D(dm);
+    const honours = roll.total >= Number(graduation.honours_target ?? Infinity);
+    const graduated = honours || roll.total >= Number(graduation.target ?? 0);
+    const outcome = graduated ? (honours ? graduation.on_honours : graduation.on_graduation) ?? {} : graduation.on_failure ?? {};
+
+    if (graduated) this.applyPreCareerOutcome(next, track, outcome, chosenSkills);
+    next.age = Math.max(next.age + Number(track.age_cost ?? 0), this.rollAgeOverride(outcome.age_override) ?? 0);
+    next.pre_career_terms += Number(track.age_cost ?? 0) > 0 ? 1 : 0;
+    next.pre_career_status = { ...status, graduated, honours, graduation_roll: roll.total, outcome_note: outcome.note ?? null };
+    next.phase = "career";
+    next.notes.push(`${graduated ? (honours ? "Graduated with honours from" : "Graduated from") : "Failed to graduate from"} ${track.name ?? trackId}.`);
+    return { track, roll, graduated, honours, character: next };
   }
 
-  survivalRoll(): never {
-    throw new Error("Career survival rolls are not ported yet. Use career packages until the parity career loop is implemented.");
+  qualifyForCareer(character: TravellerCharacter, careerId: string): EngineResult {
+    const career = this.rules.career(careerId);
+    if (!career) throw new Error(`Unknown career: ${careerId}`);
+    const next = cloneCharacter(character);
+    const blockedReason = this.careerBlocked(next, career);
+    if (blockedReason) {
+      next.notes.push(`Cannot qualify for ${career.name ?? careerId}: ${blockedReason}.`);
+      return { career, qualified: false, blockedReason, character: next };
+    }
+    const automatic = next.auto_entry_career_id === careerId || next.auto_qualify_career_ids.includes(careerId);
+    const dm = this.checkDm(next, career.qualification ?? {})
+      + next.dm_next_qualification
+      + Number(next.permanent_qualification_dm_by_career[careerId] ?? 0)
+      - next.failed_qualifications_this_term;
+    const roll = automatic || career.qualification?.automatic ? null : this.roller.roll2D(dm);
+    const qualified = automatic || career.qualification?.automatic || Boolean(roll && roll.total >= Number(career.qualification?.target ?? 0));
+    next.dm_next_qualification = 0;
+    if (qualified) {
+      next.failed_qualifications_this_term = 0;
+      next.notes.push(`Qualified for ${career.name ?? careerId}.`);
+    } else {
+      next.failed_qualifications_this_term += 1;
+      next.notes.push(`Failed qualification for ${career.name ?? careerId}${roll ? ` (${roll.total})` : ""}.`);
+    }
+    return { career, roll, qualified, character: next };
   }
 
-  eventRoll(): never {
-    throw new Error("Career event rolls are not ported yet. Use career packages until the parity event handlers are implemented.");
+  startTerm(character: TravellerCharacter, careerId: string, assignmentId?: string): EngineResult {
+    const career = this.rules.career(careerId);
+    if (!career) throw new Error(`Unknown career: ${careerId}`);
+    const assignments = Object.keys(career.assignments ?? {});
+    const resolvedAssignment = assignmentId ?? assignments[0];
+    if (!career.assignments?.[resolvedAssignment]) throw new Error(`Unknown assignment ${resolvedAssignment} for ${careerId}`);
+    const next = cloneCharacter(character);
+    const careerTerms = next.term_history.filter((term) => term.career_id === careerId).length;
+    const commissioned = next.starts_commissioned_career_id === careerId || Boolean(next.completed_careers.find((record) => record.career_id === careerId && record.commissioned));
+    const rank = commissioned ? Number(next.starts_commissioned_rank ?? 1) : 0;
+    const term: CareerTerm = {
+      career_id: careerId,
+      assignment_id: resolvedAssignment,
+      term_number: careerTerms + 1,
+      overall_term_number: next.total_terms + next.pre_career_terms + 1,
+      rank,
+      rank_title: this.rankTitle(career, commissioned, rank),
+      commissioned,
+      events: [],
+      skills_gained: [],
+      survived: null,
+      advanced: null,
+      mishap: null,
+      basic_training: careerTerms === 0,
+      benefit_forfeited: false,
+      survival_roll_total: null,
+      advancement_roll_total: null,
+      cover_career_id: null,
+      frozen_watch: false
+    };
+    next.current_term = term;
+    if (term.basic_training) {
+      for (const result of Object.values(career.skill_tables?.service_skills ?? {}).filter((value) => typeof value === "string") as string[]) {
+        const note = this.applySkillOrStat(next, result, 0);
+        if (note) term.skills_gained.push(note);
+      }
+      this.applyRankBonus(next, career, term);
+    }
+    next.phase = "career";
+    next.notes.push(`Started ${career.name ?? careerId} term ${term.term_number}.`);
+    return { career, term, character: next };
   }
 
-  mishapRoll(): never {
-    throw new Error("Career mishap rolls are not ported yet. Use career packages until the parity mishap handlers are implemented.");
+  rollOnSkillTable(character: TravellerCharacter, tableId: string): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const result = this.rollOnCareerSkillTable(next, career, tableId);
+    if (result.note) term.skills_gained.push(result.note);
+    return { career, tableId, roll: result.roll, result: result.entry, character: next };
   }
 
-  advancementRoll(): never {
-    throw new Error("Career advancement rolls are not ported yet. Use career packages until the parity career loop is implemented.");
+  survivalRoll(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const assignment = career.assignments[term.assignment_id];
+    const check = assignment.survival ?? {};
+    const dm = this.checkDm(next, check) + next.dm_next_survival;
+    const roll = this.roller.roll2D(dm);
+    const survived = roll.natural !== 2 && roll.total >= Number(check.target ?? 0);
+    term.survived = survived;
+    term.survival_roll_total = roll.total;
+    next.dm_next_survival = 0;
+    if (!survived) term.events.push("Failed survival roll; roll on the Mishap table.");
+    next.notes.push(`${survived ? "Passed" : "Failed"} survival in ${career.name ?? term.career_id}.`);
+    return { career, roll, survived, character: next };
   }
 
-  musterOutRoll(): never {
-    throw new Error("Mustering out is not ported yet. Career package cash, equipment, contacts, and allies are applied directly.");
+  eventRoll(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const roll = this.roller.roll2D(next.dm_next_events);
+    const text = String(career.events?.[String(Math.max(2, Math.min(12, roll.total)))] ?? "No event.");
+    term.events.push(text);
+    this.applyInlineEventEffects(next, term, text);
+    next.dm_next_events = 0;
+    next.notes.push(`Career event: ${text}`);
+    return { career, roll, event: text, character: next };
+  }
+
+  mishapRoll(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const roll = this.roller.rollD(6);
+    const text = String(career.mishaps?.[String(Math.max(1, Math.min(6, roll.total)))] ?? "Mishap.");
+    term.mishap = text;
+    term.survived = false;
+    term.events.push(text);
+    this.applyInlineEventEffects(next, term, text);
+    next.force_career_end = true;
+    next.notes.push(`Career mishap: ${text}`);
+    return { career, roll, mishap: text, character: next };
+  }
+
+  advancementRoll(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const assignment = career.assignments[term.assignment_id];
+    const check = assignment.advancement ?? {};
+    const dm = this.checkDm(next, check)
+      + next.dm_next_advancement
+      + next.dm_permanent_advancement
+      + Number(next.permanent_advancement_dm_by_career[term.career_id] ?? 0);
+    const roll = this.roller.roll2D(dm);
+    const advanced = roll.total >= Number(check.target ?? 0);
+    term.advanced = advanced;
+    term.advancement_roll_total = roll.total;
+    next.dm_next_advancement = 0;
+    if (advanced) {
+      term.rank = Math.min(6, term.rank + 1);
+      term.rank_title = this.rankTitle(career, term.commissioned, term.rank);
+      this.applyRankBonus(next, career, term);
+    }
+    next.notes.push(`${advanced ? "Advanced" : "Did not advance"} in ${career.name ?? term.career_id}.`);
+    return { career, roll, advanced, character: next };
+  }
+
+  endTerm(character: TravellerCharacter, leaveCareer = false, leftDueTo = "voluntary"): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    next.term_history.push(term);
+    next.total_terms += 1;
+    next.age += 4;
+    next.current_term = null;
+    next.failed_qualifications_this_term = 0;
+    const mustLeave = leaveCareer || next.force_career_end || term.survived === false;
+    if (mustLeave) {
+      const careerTerms = next.term_history.filter((entry) => entry.career_id === term.career_id).length;
+      const earned = this.benefitRollsEarned(careerTerms, term.rank, term.benefit_forfeited);
+      next.pending_benefit_rolls += earned;
+      next.completed_careers.push({
+        career_id: term.career_id,
+        assignment_id: term.assignment_id,
+        terms_served: careerTerms,
+        final_rank: term.rank,
+        final_rank_title: term.rank_title ?? null,
+        commissioned: term.commissioned,
+        left_due_to: leftDueTo,
+        benefit_rolls_used: 0,
+        benefit_rolls_earned: earned
+      });
+      next.force_career_end = false;
+      next.phase = next.pending_benefit_rolls > 0 ? "mustering" : "career";
+    }
+    next.notes.push(`Ended ${career.name ?? term.career_id} term ${term.term_number}.`);
+    return { career, term, character: next };
+  }
+
+  musterOutRoll(character: TravellerCharacter, careerId?: string, column: "cash" | "benefit" = "benefit"): EngineResult {
+    const next = cloneCharacter(character);
+    const record = careerId
+      ? [...next.completed_careers].reverse().find((entry) => entry.career_id === careerId)
+      : next.completed_careers[next.completed_careers.length - 1];
+    if (!record) throw new Error("No completed career to muster out from.");
+    if (next.pending_benefit_rolls <= 0) throw new Error("No pending benefit rolls.");
+    const career = this.rules.career(record.career_id);
+    const rawRoll = this.roller.rollD(6);
+    const total = Math.max(1, Math.min(7, rawRoll.total + next.dm_next_benefit));
+    const entry = career.mustering_out?.[String(total)] ?? {};
+    const resolvedColumn = column === "cash" && next.cash_rolls_used < 3 && entry.cash != null ? "cash" : "benefit";
+    const result = entry[resolvedColumn];
+    if (resolvedColumn === "cash") {
+      next.credits += Number(result ?? 0);
+      next.cash_rolls_used += 1;
+    } else {
+      this.applyMusterBenefit(next, String(result ?? "Benefit"));
+    }
+    next.pending_benefit_rolls -= 1;
+    record.benefit_rolls_used += 1;
+    next.dm_next_benefit = 0;
+    if (next.pending_benefit_rolls <= 0) next.phase = "skill_package";
+    next.notes.push(`Mustering out ${resolvedColumn}: ${result}.`);
+    return { career, roll: rawRoll, tableRoll: total, column: resolvedColumn, result, character: next };
+  }
+
+  private checkDm(character: TravellerCharacter, check: any): number {
+    let dm = characteristicDm(getCharacteristic(character, check?.characteristic as CharacteristicKey));
+    for (const modifier of check?.modifiers ?? []) {
+      if (modifier.type === "per_previous_term") dm += Number(modifier.dm ?? 0) * character.total_terms;
+      if (modifier.type === "per_previous_career") dm += Number(modifier.dm ?? 0) * character.completed_careers.length;
+      if (modifier.type === "characteristic_threshold" && getCharacteristic(character, modifier.characteristic) >= Number(modifier.threshold ?? 0)) dm += Number(modifier.dm ?? 0);
+    }
+    return dm;
+  }
+
+  private applyStatBlock(character: TravellerCharacter, block: Record<string, unknown>): void {
+    for (const [key, delta] of Object.entries(block)) {
+      if (CORE_CHARACTERISTICS.includes(key as any) || key === "PSI" || key === "CHA") {
+        setCharacteristic(character, key as CharacteristicKey, getCharacteristic(character, key as CharacteristicKey) + Number(delta));
+        if (key === "PSI") character.psi = getCharacteristic(character, "PSI");
+      }
+    }
+  }
+
+  private applyPreCareerOutcome(character: TravellerCharacter, track: any, outcome: any, chosenSkills: string[]): void {
+    this.applyStatBlock(character, outcome);
+    if (outcome.EDU_penalty_dice === "D3") setCharacteristic(character, "EDU", getCharacteristic(character, "EDU") - this.roller.d3());
+    if (outcome.jack_of_all_trades) addSkill(character, "Jack-of-All-Trades", Number(outcome.jack_of_all_trades), null, true);
+    this.applySkillResults(character, outcome.fixed_skills ?? [], 1);
+
+    const pool = (character.pre_career_status?.skill_pool as string[] | undefined) ?? this.preCareerSkillPool(track, null, null);
+    const neededLevel1 = Number(outcome.skills_at_level_1 ?? 0) + Number(outcome.skills_upgrade_from_enrollment ?? 0) + Number(outcome.skills_from_enrollment_1 ?? 0);
+    this.applyChosenSkills(character, chosenSkills, pool, neededLevel1, 1);
+    this.applyChosenSkills(character, chosenSkills.slice(neededLevel1), pool, Number(outcome.additional_skills_from_enrollment_0 ?? 0), 0);
+    for (const associate of outcome.associates ?? []) {
+      character.associates.push({ kind: associate.kind ?? "contact", description: associate.description ?? `${track.name} associate` });
+    }
+    const permanent = outcome.permanent ?? {};
+    for (const careerId of permanent.advancement_dm_careers ?? []) {
+      character.permanent_advancement_dm_by_career[careerId] = Number(permanent.advancement_dm ?? 0);
+    }
+    if (permanent.qualification_dm) {
+      for (const career of this.rules.careerList()) character.permanent_qualification_dm_by_career[career.id] = Number(permanent.qualification_dm);
+      for (const careerId of permanent.bonus_qualify_careers ?? []) character.permanent_qualification_dm_by_career[careerId] = Number(permanent.bonus_qualify_dm ?? 0);
+    }
+    if (permanent.psion_career_auto_entry) character.auto_qualify_career_ids.push("psion");
+    if (outcome.auto_entry && character.pre_career_status?.career_id) character.auto_entry_career_id = String(character.pre_career_status.career_id);
+    if (outcome.commission_dm && character.pre_career_status?.career_id) {
+      character.academy_commission_career_id = String(character.pre_career_status.career_id);
+      character.academy_commission_dm = Number(outcome.commission_dm);
+    }
+    if (outcome.starts_commissioned_rank && character.pre_career_status?.career_id) {
+      character.starts_commissioned_career_id = String(character.pre_career_status.career_id);
+      character.starts_commissioned_rank = Number(outcome.starts_commissioned_rank);
+    }
+    if (outcome.permanent?.auto_rank && character.pre_career_status?.career_id) {
+      character.starts_commissioned_career_id = String(character.pre_career_status.career_id);
+      character.starts_commissioned_rank = Number(outcome.permanent.auto_rank);
+      character.auto_entry_career_id = String(character.pre_career_status.career_id);
+    }
+  }
+
+  private preCareerSkillPool(track: any, service: any, curriculum: any): string[] {
+    const genderPool = thisGenderSkillPool(track);
+    return [
+      ...(track.skill_list ?? []),
+      ...genderPool,
+      ...(track.enrollment_skill_pool ?? []),
+      ...(service?.skill_list ?? []),
+      ...(curriculum?.skill_list ?? [])
+    ].map(String);
+  }
+
+  private applyChosenSkills(character: TravellerCharacter, raw: unknown, pool: string[], count: number, level: number): string[] {
+    const choices = Array.isArray(raw) ? raw.map(String) : typeof raw === "string" ? raw.split(",").map((entry) => entry.trim()).filter(Boolean) : [];
+    const picked = choices.length ? choices : pool;
+    const applied: string[] = [];
+    for (const choice of picked.slice(0, Math.max(0, count))) {
+      const base = pool.find((entry) => entry.toLowerCase() === choice.toLowerCase()) ?? choice;
+      const [name, speciality, parsedLevel] = parseSkillGain(/\d+$/.test(base.trim()) ? base : `${base} ${level}`);
+      applied.push(addSkill(character, name, parsedLevel, speciality, true));
+    }
+    return applied;
+  }
+
+  private applySkillResults(character: TravellerCharacter, results: string[], defaultLevel: number): string[] {
+    return results.map((result) => this.applySkillOrStat(character, result, defaultLevel)).filter(Boolean) as string[];
+  }
+
+  private rollAgeOverride(value: unknown): number | null {
+    if (value === "22+2D3") return 22 + this.roller.d3() + this.roller.d3();
+    return null;
+  }
+
+  private careerBlocked(character: TravellerCharacter, career: any): string | null {
+    if (character.banned_career_ids.includes(career.id)) return "career is banned by a prior result";
+    if (character.forced_next_career_id && character.forced_next_career_id !== career.id) return `must enter ${character.forced_next_career_id}`;
+    if (career.blocked_societies?.includes(character.society_id)) return `blocked for ${character.society_id}`;
+    if (career.allowed_societies?.length && !career.allowed_societies.includes(character.society_id)) return `not available for ${character.society_id}`;
+    if (career.blocked_species?.includes(character.species_id)) return `blocked for ${character.species_id}`;
+    if (career.allowed_species?.length && !career.allowed_species.includes(character.species_id)) return `not available for ${character.species_id}`;
+    const species = this.rules.species(character.species_id);
+    if (species?.blocked_careers?.includes(career.id)) return `blocked for ${species.name ?? character.species_id}`;
+    if (species?.allowed_species_careers?.length && !species.allowed_species_careers.includes(career.id)) return `not in species career list`;
+    return null;
+  }
+
+  private requireCurrentTerm(character: TravellerCharacter): NonNullable<TravellerCharacter["current_term"]> {
+    if (!character.current_term) throw new Error("No active career term.");
+    return character.current_term;
+  }
+
+  private rankTrack(career: any, commissioned: boolean): any {
+    if (commissioned && career.ranks?.officer) return career.ranks.officer;
+    if (!commissioned && career.ranks?.enlisted) return career.ranks.enlisted;
+    return career.ranks?.default ?? career.ranks?.enlisted ?? career.ranks?.officer ?? {};
+  }
+
+  private rankTitle(career: any, commissioned: boolean, rank: number): string | null {
+    return this.rankTrack(career, commissioned)?.[String(rank)]?.title ?? null;
+  }
+
+  private applyRankBonus(character: TravellerCharacter, career: any, term: NonNullable<TravellerCharacter["current_term"]>): void {
+    const bonus = this.rankTrack(career, term.commissioned)?.[String(term.rank)]?.bonus;
+    if (!bonus) return;
+    const note = this.applySkillOrStat(character, String(bonus), 1);
+    if (note) term.skills_gained.push(note);
+  }
+
+  private rollOnExternalSkillTable(character: TravellerCharacter, careerId: string, tableId: string): string | null {
+    const career = this.rules.career(careerId);
+    if (!career) return null;
+    return this.rollOnCareerSkillTable(character, career, tableId).note;
+  }
+
+  private rollOnCareerSkillTable(character: TravellerCharacter, career: any, tableId: string): { roll: RollResult; entry: string; note: string | null } {
+    const table = career.skill_tables?.[tableId];
+    if (!table) throw new Error(`Unknown skill table ${tableId} for ${career.id}`);
+    if (table.requires_edu && getCharacteristic(character, "EDU") < Number(table.requires_edu)) throw new Error(`${table.name ?? tableId} requires EDU ${table.requires_edu}+.`);
+    const roll = this.roller.rollD(6);
+    const entry = String(table[String(Math.max(1, Math.min(6, roll.total)))] ?? "");
+    const note = this.applySkillOrStat(character, entry, 1);
+    return { roll, entry, note };
+  }
+
+  private applySkillOrStat(character: TravellerCharacter, result: string, defaultLevel: number): string | null {
+    const option = result.split(/\s+or\s+/i)[0].replace(/\b(any|one of)\b/gi, "").trim();
+    const statMatch = option.match(/\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+(\d+)/);
+    if (statMatch) {
+      const key = statMatch[1] as CharacteristicKey;
+      setCharacteristic(character, key, getCharacteristic(character, key) + Number(statMatch[2]));
+      if (key === "PSI") character.psi = getCharacteristic(character, "PSI");
+      return `${key} +${statMatch[2]}`;
+    }
+    const cleaned = option.replace(/\s*\((?:any|Small Craft or Spacecraft|riding or Training)\)\s*/i, "").trim();
+    if (!cleaned) return null;
+    const [name, speciality, level] = parseSkillGain(/\d+$/.test(cleaned) ? cleaned : `${cleaned} ${defaultLevel}`);
+    const normalizedSpeciality = typeof speciality === "string" && speciality.toLowerCase() === "any" ? null : speciality;
+    return addSkill(character, normalizeSkillName(name), level, normalizedSpeciality, true);
+  }
+
+  private applyInlineEventEffects(character: TravellerCharacter, term: NonNullable<TravellerCharacter["current_term"]>, text: string): void {
+    const benefitDm = text.match(/DM\+(\d+) to (?:any one |your next )Benefit/i);
+    if (benefitDm) character.dm_next_benefit += Number(benefitDm[1]);
+    const advancementDm = text.match(/DM\+(\d+) to your next Advancement/i);
+    if (advancementDm) character.dm_next_advancement += Number(advancementDm[1]);
+    if (/automatically promoted/i.test(text)) {
+      const career = this.rules.career(term.career_id);
+      term.rank = Math.min(6, term.rank + 1);
+      term.advanced = true;
+      term.rank_title = this.rankTitle(career, term.commissioned, term.rank);
+      this.applyRankBonus(character, career, term);
+    }
+    const skillMatches = [...text.matchAll(/\b([A-Z][A-Za-z-]+(?:\s+[A-Z][A-Za-z-]+)?(?:\s+\([^)]+\))?)\s+(\d)\b/g)];
+    for (const match of skillMatches.slice(0, 2)) {
+      const [name, speciality, level] = parseSkillGain(`${match[1]} ${match[2]}`);
+      if (["Roll", "Gain", "Table", "DM"].includes(name)) continue;
+      const note = addSkill(character, name, level, speciality, true);
+      term.skills_gained.push(note);
+    }
+    if (/Gain (?:a|one) Contact/i.test(text)) character.associates.push({ kind: "contact", description: `Contact from ${term.career_id} event` });
+    if (/Gain (?:an|one) Ally/i.test(text)) character.associates.push({ kind: "ally", description: `Ally from ${term.career_id} event` });
+    if (/Gain (?:an|one) Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: `Enemy from ${term.career_id} event` });
+    if (/Gain (?:a|one) Rival/i.test(text)) character.associates.push({ kind: "rival", description: `Rival from ${term.career_id} event` });
+  }
+
+  private benefitRollsEarned(terms: number, rank: number, forfeited: boolean): number {
+    let rolls = Math.max(0, terms);
+    if (rank >= 1) rolls += 1;
+    if (rank >= 3) rolls += 1;
+    if (rank >= 5) rolls += 1;
+    if (forfeited) rolls = Math.max(0, rolls - 1);
+    return rolls;
+  }
+
+  private applyMusterBenefit(character: TravellerCharacter, result: string): void {
+    if (/TAS Membership/i.test(result)) character.tas_member = true;
+    else if (/Ship Share/i.test(result)) character.ship_shares += 1;
+    else if (/Scout Ship/i.test(result)) character.equipment.push({ name: "Scout Ship", quantity: 1, notes: "Mustering-out benefit" });
+    else if (/Weapon/i.test(result)) character.equipment.push({ name: "Weapon", quantity: 1, notes: "Mustering-out benefit" });
+    else if (/Armou?r/i.test(result)) character.equipment.push({ name: "Armour", quantity: 1, notes: "Mustering-out benefit" });
+    else if (/Blade/i.test(result)) character.equipment.push({ name: "Blade", quantity: 1, notes: "Mustering-out benefit" });
+    else if (/Gun/i.test(result)) character.equipment.push({ name: "Gun", quantity: 1, notes: "Mustering-out benefit" });
+    else if (/Ship's Boat/i.test(result)) character.equipment.push({ name: "Ship's Boat", quantity: 1, notes: "Mustering-out benefit" });
+    else {
+      const stat = result.match(/\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+(\d+)/);
+      if (stat) setCharacteristic(character, stat[1] as CharacteristicKey, getCharacteristic(character, stat[1] as CharacteristicKey) + Number(stat[2]));
+      else character.equipment.push({ name: result, quantity: 1, notes: "Mustering-out benefit" });
+    }
   }
 
   finalizeRobot(robotConfig: Record<string, unknown>): EngineResult {
@@ -269,4 +727,14 @@ export function parseSkillGain(text: string): [string, string | null, number] {
   const skillText = levelMatch ? trimmed.slice(0, levelMatch.index).trim() : trimmed;
   const [name, speciality] = splitSkillSpeciality(skillText);
   return [name, speciality, level];
+}
+
+function thisGenderSkillPool(track: any): string[] {
+  return [...(track.skill_list_male ?? []), ...(track.skill_list_female ?? [])].map(String);
+}
+
+function normalizeSkillName(name: string): string {
+  if (name === "Jack-of-all-Trades") return "Jack-of-All-Trades";
+  if (name === "Jack-of-all-trades") return "Jack-of-All-Trades";
+  return name.trim();
 }

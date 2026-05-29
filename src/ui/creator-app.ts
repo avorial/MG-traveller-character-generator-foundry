@@ -110,7 +110,7 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   static async createActor(this: TravellerCreatorApp): Promise<void> {
-    const nameInput = this.element.querySelector<HTMLInputElement>("[name='name']");
+    const nameInput = this.element.querySelector("[name='name']") as HTMLInputElement | null;
     if (nameInput?.value) this.character.name = nameInput.value;
     await this.api.createActor(this.character);
     this.clearDraft();
