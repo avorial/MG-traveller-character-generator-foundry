@@ -1,0 +1,31 @@
+{
+    "id":  "frontier_human",
+    "name":  "Frontier Human",
+    "description":  "Humans on the edge of known space or in independent systems. Self-reliant, varied, defined by where they came from rather than who rules them.",
+    "characteristic_modifiers":  {
+                                     "STR":  0,
+                                     "DEX":  0,
+                                     "END":  1,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  -1
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  810,
+    "traits":  [
+                   {
+                       "name":  "Frontier-Bred",
+                       "description":  "Raised in conditions where backup was not available, frontier humans develop extraordinary self-reliance. DM+1 to Survival checks and DM+1 to Engineer or Mechanic checks involving field repairs — improvising solutions with available materials rather than purpose-built equipment."
+                   },
+                   {
+                       "name":  "Independent Streak",
+                       "description":  "Frontier-raised characters are deeply skeptical of institutions and hierarchies they didn\u0027t choose. DM+1 to resist social coercion, formal intimidation, or legal pressure from authority figures. DM-1 on Admin checks that require working within formal bureaucratic structures — they find the red tape actively aggravating."
+                   }
+               ],
+    "aliases":  [
+                    "frontier",
+                    "border_human",
+                    "independent_human"
+                ],
+    "source":  "Traveller — generic frontier human background"
+}

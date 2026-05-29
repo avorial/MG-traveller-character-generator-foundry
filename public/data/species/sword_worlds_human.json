@@ -1,0 +1,29 @@
+{
+    "id":  "sword_worlds_human",
+    "name":  "Sword Worlder",
+    "description":  "Frontier humans from a cluster of independent worlds, descended from Norse-influenced settlers. Proud, martial, suspicious of the Imperium.",
+    "characteristic_modifiers":  {
+                                     "STR":  1,
+                                     "DEX":  0,
+                                     "END":  1,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  -1
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  800,
+    "traits":  [
+                   {
+                       "name":  "Warrior Culture",
+                       "description":  "Sword Worlders grow up in a society that valorises combat readiness. They begin play with Melee (any) or Gun Combat (any) at level 0 as an additional background skill, regardless of their EDU DM. DM+1 to all Morale-equivalent checks and checks to resist fear or intimidation."
+                   },
+                   {
+                       "name":  "Imperial Wariness",
+                       "description":  "Sword Worlders have an instinctive distrust of Imperial authority. DM+1 to notice when an Imperial official, agent, or noble is trying to deceive or manipulate them. DM-1 to social checks with Imperial citizens who know the character\u0027s origin and hold strong Imperial loyalties."
+                   }
+               ],
+    "aliases":  [
+                    "sword_worlder"
+                ],
+    "source":  "Traveller Spinward Marches; Mongoose Publishing"
+}

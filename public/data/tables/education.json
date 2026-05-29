@@ -1,0 +1,473 @@
+{
+  "description": "Pre-career education: University or Military Academy. Mongoose Traveller 2e, core rulebook pp. 11-12.",
+  "aslan_pre_career_events": {
+    "2":  "A clique of students who neglect their studies attempts to draw you in. You may join them (your SOC drops to 2, but you may enter the Outlaw or Wanderer career without a qualification roll in your next term) or stay focused on your studies.",
+    "3":  "You are dishonoured in a serious incident and cannot redeem yourself in time to graduate. You fail to graduate.",
+    "4":  "You become embroiled in an honour duel. Roll SOC 8+. If you succeed, gain a Rival. If you fail, gain an Enemy. If you roll a natural 2, you are cast out — you must become Outcast in your next term.",
+    "5":  "You become popular with your peers. Gain Carouse 1.",
+    "6":  "You forge close bonds with other students. Gain D3 Allies.",
+    "7":  "Life Event. Roll on the Aslan Life Events table.",
+    "8":  "You distinguish yourself in the eyes of your clan. Roll SOC 8+. If successful, gain an Ally within your clan but gain an Enemy in a rival clan.",
+    "9":  "New ideas inspire original thinking. Gain any one skill at level 0 (except Jack-of-all-Trades).",
+    "10": "You engage in fierce academic competition. Roll 9+ on any skill you have learned this term. If successful, gain +1 level in that skill and gain a Rival.",
+    "11": "Your clan goes to war. You may flee (become Outcast, do not graduate) or enlist directly in a Military, Military Officer, Spacer, or Space Officer career (do not graduate).",
+    "12": "Your efforts in study bring great honour to your clan. Increase your SOC by +1."
+  },
+  "pre_career_events": {
+    "2":  "You are approached by an underground (and highly illegal) psionic group who sense potential in you. You may test your PSI and attempt to enter the Psion career in any subsequent term.",
+    "3":  "Your time in education is not a happy one and you suffer a deep tragedy; perhaps you become hopelessly addicted to drink or drugs, a failed romance leaves you in tatters, or a fatal accident involving a close friend shakes your confidence. You crash and fail to graduate.",
+    "4":  "A supposedly harmless prank goes wrong and someone gets hurt, physically or emotionally. Roll SOC 8+. If you succeed, gain a Rival. If you fail, gain an Enemy. If you roll 2, you must take the Prisoner career in your next term.",
+    "5":  "Taking advantage of youth, you party as much as you study. Gain Carouse 1.",
+    "6":  "You become involved in a tightly knit clique or group and make a pact to remain friends forever, wherever in the galaxy you may end. Gain D3 Allies.",
+    "7":  "Life Event. Roll on the Life Events table.",
+    "8":  "You join a political movement. Roll SOC 8+. If successful, you become a leading figure. Gain one Ally within the movement but gain one Enemy in wider society.",
+    "9":  "You develop a healthy interest in a hobby or other area of study. Gain any skill of your choice, with the exception of Jack-of-all-Trades, at level 0.",
+    "10": "A newly arrived tutor rubs you up the wrong way and you work hard to overturn their conclusions. Roll 9+ on any skill you have learned during this term. If successful, you provide a truly elegant proof that soon becomes accepted as the standard approach. Gain a level in the skill you rolled on and the tutor as a Rival.",
+    "11": "War comes and a wide-ranging draft is instigated. You can either flee and join the Drifter career next term or be drafted (roll 1D: 1-3 Army, 4-5 Marine, 6 Navy). Either way, you do not graduate this term. However, if you roll SOC 9+, you can get enough strings pulled to avoid the draft and complete your education — you may attempt graduation normally and are not drafted.",
+    "12": "You gain wide-ranging recognition of your initiative and innovative approach to study. Increase your SOC by +1."
+  },
+  "life_events": {
+    "2":  "Sickness or Injury: You are injured or become sick. Roll on the Injury Table.",
+    "3":  "Birth or Death: Someone close to you dies, like a friend or family member. Alternatively, someone close to you gives birth (or is born!). You are involved in some fashion.",
+    "4":  "Ending of Relationship: A romantic relationship involving you ends. Badly. Gain a Rival or Enemy.",
+    "5":  "Improved Relationship: A romantic relationship involving you deepens, possibly leading to marriage or some other emotional commitment. Gain an Ally.",
+    "6":  "New Relationship: You become involved in a romantic relationship. Gain an Ally.",
+    "7":  "New Contact: You gain a new Contact.",
+    "8":  "Betrayal: You are betrayed in some fashion by a friend. If you have any Contacts or Allies, convert one into a Rival or Enemy. Otherwise, gain a Rival or an Enemy.",
+    "9":  "Travel: You move to another world. You gain DM+2 to your next Qualification roll.",
+    "10": "Good Fortune: Something good happens to you; you come into money unexpectedly, have a lifelong dream come true, get a book published or have some other stroke of good fortune. Gain DM+2 to any one Benefit roll.",
+    "11": "Crime: You commit or are the victim (or are accused) of a crime. Lose one Benefit roll or take the Prisoner career in your next term.",
+    "12": "Unusual Event: Something weird happens. Roll 1D: 1 Psionics, 2 Aliens, 3 Alien Artefact, 4 Amnesia, 5 Contact with Government, 6 Ancient Technology."
+  },
+  "tracks": {
+    "university": {
+      "id": "university",
+      "name": "University",
+      "blurb": "Four years of academic study. Higher EDU, a few free skills, and a chance at Honours for real bragging rights.",
+      "age_cost": 4,
+      "max_age": 20,
+      "enrollment_bonus": {"EDU": 1},
+      "qualification": {
+        "characteristic": "INT",
+        "target": 6,
+        "modifiers": [
+          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "EDU",
+        "target": 7,
+        "honours_target": 10,
+        "on_graduation": {
+          "EDU": 2,
+          "skills_at_level_1": 2,
+          "note": "Choose 2 skills at level 1 from the University skill list."
+        },
+        "on_honours": {
+          "EDU": 2,
+          "SOC": 1,
+          "skills_at_level_1": 2,
+          "dm_next_qualification": 1,
+          "note": "Graduated with Honours. DM+1 on first career qualification roll."
+        },
+        "on_failure": {
+          "note": "Failed graduation. Keeps the +1 EDU from enrollment, no other bonuses."
+        }
+      },
+      "skill_list": [
+        "Admin", "Advocate", "Animals", "Art", "Astrogation", "Diplomat",
+        "Drive", "Electronics", "Engineer", "Language", "Life Sciences",
+        "Medic", "Navigation", "Physical Sciences", "Pilot", "Science",
+        "Social Sciences", "Space Sciences"
+      ]
+    },
+    "military_academy": {
+      "id": "military_academy",
+      "name": "Military Academy",
+      "blurb": "Three years of hell. Qualify and graduate to start your service career as a commissioned officer — plus all Service Skills and a DM+2 commission roll.",
+      "age_cost": 3,
+      "max_age": 21,
+      "services": {
+        "army": {
+          "id": "army",
+          "name": "Military Academy — Army",
+          "career_id": "army",
+          "qualification": {"characteristic": "END", "target": 8}
+        },
+        "marine": {
+          "id": "marine",
+          "name": "Military Academy — Marines",
+          "career_id": "marine",
+          "qualification": {"characteristic": "END", "target": 9}
+        },
+        "navy": {
+          "id": "navy",
+          "name": "Military Academy — Navy",
+          "career_id": "navy",
+          "qualification": {"characteristic": "INT", "target": 9}
+        }
+      },
+      "graduation": {
+        "characteristic": "INT",
+        "target": 8,
+        "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 8, "dm": 1, "description": "DM+1 if END 8+"},
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1, "description": "DM+1 if SOC 8+"}
+        ],
+        "on_graduation": {
+          "EDU": 1,
+          "commission_dm": 2,
+          "skills_at_level_1": 3,
+          "auto_entry": true,
+          "note": "Passed. Automatic entry into the tied military career. Roll Commission 8+ with DM+2 — success means you start at officer rank (O1). Gain +1 EDU and 3 Service Skills at level 1."
+        },
+        "on_honours": {
+          "EDU": 1,
+          "SOC": 1,
+          "starts_commissioned_rank": 1,
+          "skills_at_level_1": 3,
+          "auto_entry": true,
+          "note": "Graduated with Honours. Automatic entry and automatic commission at Rank 1. Gain +1 EDU, +1 SOC, and 3 Service Skills at level 1."
+        },
+        "on_failure": {
+          "auto_entry_if_not_natural_2": true,
+          "note": "Failed to graduate. If you did not roll a natural 2, you may still automatically enter the tied military career — but you may not make a Commission roll."
+        }
+      }
+    },
+
+    "merchant_academy": {
+      "id": "merchant_academy",
+      "name": "Merchant Academy",
+      "blurb": "Vocational training for interstellar commerce. Choose Business or Shipboard curriculum. Graduates enter the Merchant or Citizen career at officer rank with a permanent advancement bonus.",
+      "age_cost": 4,
+      "max_age": 22,
+      "curricula": {
+        "business": {
+          "id": "business",
+          "name": "Business",
+          "enrollment_skill_table": {"career": "merchant", "table": "broker"},
+          "auto_rank_careers": ["merchant", "citizen"]
+        },
+        "shipboard": {
+          "id": "shipboard",
+          "name": "Shipboard",
+          "enrollment_skill_table": {"career": "merchant", "table": "merchant_marine"},
+          "auto_rank_careers": ["merchant"]
+        }
+      },
+      "enrollment_service_skill_random": 1,
+      "qualification": {
+        "characteristic": "INT",
+        "target": 9,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "INT",
+        "target": 7,
+        "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "EDU", "threshold": 8, "dm": 1},
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "EDU": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "advancement_dm": 1,
+            "advancement_dm_careers": ["merchant", "citizen"],
+            "auto_rank": 1,
+            "auto_rank_requires_first_career": true
+          },
+          "note": "Graduated. +1 EDU. Upgrade one enrollment skill to level 1. Enter Merchant or Citizen at Rank 1 (first career after academy, matching branch). DM+1 advancement in Merchant/Citizen."
+        },
+        "on_honours": {
+          "EDU": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "advancement_dm": 2,
+            "advancement_dm_careers": ["merchant", "citizen"],
+            "auto_rank": 2,
+            "auto_rank_requires_first_career": true
+          },
+          "note": "Graduated with Honours. +1 EDU. Upgrade one enrollment skill to level 1. Enter Merchant or Citizen at Rank 2 (with that rank's automatic skill). DM+2 advancement in Merchant/Citizen."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
+    },
+
+    "colonial_upbringing": {
+      "id": "colonial_upbringing",
+      "name": "Colonial Upbringing",
+      "blurb": "Grew up in the outback or on a new colony (homeworld TL 8 or less). Broad survival skills but limited formal education. Carries permanent career penalties.",
+      "age_cost": 0,
+      "max_age": 99,
+      "qualification": {
+        "automatic": true,
+        "homeworld_condition": {"tl_max": 8},
+        "note": "Automatic if homeworld TL 8 or less."
+      },
+      "enrollment_auto_skills": [
+        "Animals 0", "Athletics 0", "Drive 0", "Gun Combat 0", "Mechanic 0",
+        "Medic 0", "Navigation 0", "Recon 0", "Profession 0", "Seafarer 0", "Survival 1"
+      ],
+      "graduation": {
+        "characteristic": "INT",
+        "target": 8,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "END": 1,
+          "EDU_penalty_dice": "D3",
+          "age_override": "22+2D3",
+          "jack_of_all_trades": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "additional_skills_from_enrollment_0": 2,
+          "permanent": {
+            "commission_dm": -1,
+            "qualification_dm": -2,
+            "bonus_qualify_careers": ["rogue", "scout"],
+            "bonus_qualify_dm": 1
+          },
+          "note": "Graduated. END+1, EDU-D3, age becomes 22+2D3. Jack-of-all-Trades 1. Upgrade one enrollment skill to level 1, gain two more at level 0. Permanent DM-1 commission/promotion, DM-2 all qualifications (except Rogue/Scout get DM+1 instead)."
+        },
+        "on_honours": {
+          "END": 1,
+          "EDU_penalty_dice": "D3",
+          "age_override": "22+2D3",
+          "jack_of_all_trades": 1,
+          "Leadership 1": true,
+          "skills_upgrade_from_enrollment": 2,
+          "additional_skills_from_enrollment_0": 2,
+          "permanent": {
+            "commission_dm": -1,
+            "qualification_dm": -2,
+            "bonus_qualify_careers": ["rogue", "scout"],
+            "bonus_qualify_dm": 1
+          },
+          "note": "Graduated with Honours. END+1, EDU-D3, age becomes 22+2D3. Jack-of-all-Trades 1, Leadership 1. Upgrade two enrollment skills to level 1, gain two more at level 0. Same permanent penalties apply."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No benefits granted."
+        }
+      }
+    },
+
+    "psionic_community": {
+      "id": "psionic_community",
+      "name": "Psionic Community",
+      "blurb": "Raised in a community where psionics are practiced. PSI is tested (2D) if not yet rolled. Requires PSI 8+. Psion career entry is automatic for life.",
+      "age_cost": 3,
+      "max_age": 22,
+      "qualification": {
+        "characteristic": "PSI",
+        "target": 8,
+        "requires_psi_test": true,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "INT", "threshold": 8, "dm": 1}
+        ]
+      },
+      "enrollment_auto_skills": ["Profession 0", "Science 0", "Streetwise 0"],
+      "enrollment_psionic_talents": true,
+      "graduation": {
+        "characteristic": "PSI",
+        "target": 6,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "INT", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "PSI": 1,
+          "fixed_skills": ["Science (Psionicology) 1"],
+          "psionic_talent_upgrade": 1,
+          "permanent": {
+            "psion_career_auto_entry": true
+          },
+          "associates": [
+            {"kind": "rival", "description": "Rival — community member unhappy you left"}
+          ],
+          "note": "Graduated. PSI+1, Science (Psionicology) 1, one psionic talent raised to level 1. Gain a Rival. Psion career entry is now always automatic."
+        },
+        "on_honours": {
+          "PSI": 1,
+          "fixed_skills": ["Science (Psionicology) 1"],
+          "psionic_all_talents_to_1": true,
+          "psionic_one_talent_to_2": true,
+          "permanent": {
+            "psion_career_auto_entry": true
+          },
+          "associates": [
+            {"kind": "enemy", "description": "Enemy — community angered you left"}
+          ],
+          "note": "Graduated with Honours. PSI+1, Science (Psionicology) 1, all talents to level 1, one talent to level 2. Gain an Enemy instead of a Rival. Psion career always automatic."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. Basic psionic training incomplete — keep any enrollment skills."
+        }
+      }
+    },
+
+    "aslan_university": {
+      "id": "aslan_university",
+      "name": "Aslan University",
+      "blurb": "Formal Aslan academic study. EDU 6+ entry (DM+1 if SOC 9+). One gender-specific skill at enrollment (level 0), one at graduation (level 1). Graduate for EDU+1 and advancement bonuses across major Aslan careers.",
+      "age_cost": 4,
+      "max_age": 20,
+      "enrollment_bonus": {"EDU": 1},
+      "enrollment_skill_picks": 1,
+      "enrollment_pick_level": 0,
+      "qualification": {
+        "characteristic": "EDU",
+        "target": 6,
+        "modifiers": [
+          {"description": "DM+1 if SOC 9+", "type": "characteristic_threshold", "characteristic": "SOC", "threshold": 9, "dm": 1},
+          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "INT",
+        "target": 6,
+        "honours_target": 10,
+        "on_graduation": {
+          "EDU": 1,
+          "skills_at_level_1": 1,
+          "permanent": {
+            "advancement_dm": 1,
+            "advancement_dm_careers": ["aslan_ceremonial","aslan_envoy","aslan_management","aslan_military","aslan_military_officer","aslan_scientist","aslan_spacer","aslan_space_officer"]
+          },
+          "note": "Graduated. EDU+1. Pick 1 skill at level 1 from gender pool. DM+1 to advancement in major Aslan careers."
+        },
+        "on_honours": {
+          "EDU": 1,
+          "SOC": 1,
+          "skills_at_level_1": 1,
+          "permanent": {
+            "advancement_dm": 2,
+            "advancement_dm_careers": ["aslan_ceremonial","aslan_envoy","aslan_management","aslan_military","aslan_military_officer","aslan_scientist","aslan_spacer","aslan_space_officer"]
+          },
+          "note": "Graduated with Honours. EDU+1, SOC+1. Pick 1 skill at level 1 from gender pool. DM+2 to advancement in major Aslan careers."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. Keeps the +1 EDU from enrollment, no other bonuses."
+        }
+      },
+      "skill_list_male":   ["Advocate", "Animals", "Art", "Electronics", "Independence", "Language", "Navigation", "Tolerance"],
+      "skill_list_female": ["Admin", "Advocate", "Animals", "Art", "Astrogation", "Broker", "Electronics", "Engineer", "Language", "Medic", "Navigation", "Profession", "Science", "Tolerance"]
+    },
+
+    "school_of_hard_knocks": {
+      "id": "school_of_hard_knocks",
+      "name": "School of Hard Knocks",
+      "blurb": "Grew up on the fringes (SOC 6 or less). Street-smart but rough around the edges. DM-2 on commission and promotion in your first career only.",
+      "age_cost": 2,
+      "max_age": 99,
+      "qualification": {
+        "automatic": true,
+        "stat_condition": {"stat": "SOC", "max": 6},
+        "note": "Automatic if SOC 6 or less."
+      },
+      "enrollment_auto_skills": ["Streetwise 1"],
+      "enrollment_skill_picks": 2,
+      "enrollment_skill_pool": [
+        "Athletics", "Deception", "Drive", "Gambler", "Melee", "Persuade", "Stealth"
+      ],
+      "enrollment_pick_level": 0,
+      "graduation": {
+        "characteristic": "INT",
+        "target": 7,
+        "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 9, "dm": 1}
+        ],
+        "on_graduation": {
+          "SOC": -1,
+          "fixed_skills": ["Gun Combat 0"],
+          "additional_skills_from_enrollment_0": 3,
+          "permanent": {
+            "first_career_commission_dm": -2
+          },
+          "note": "Graduated. SOC-1, Gun Combat 0. Three more skills from enrollment pool at level 0. DM-2 commission/promotion in first career only."
+        },
+        "on_honours": {
+          "SOC": -1,
+          "fixed_skills": ["Gun Combat 0", "Carouse 1"],
+          "additional_skills_from_enrollment_0": 3,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "first_career_commission_dm": -2
+          },
+          "note": "Graduated with Honours. SOC-1, Gun Combat 0, Carouse 1. Three more skills from enrollment pool at level 0, upgrade one to level 1. DM-2 commission/promotion in first career only."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
+    },
+
+    "spacer_community": {
+      "id": "spacer_community",
+      "name": "Spacer Community",
+      "blurb": "Grew up on an orbital habitat or asteroid belt (homeworld size 0). Practical zero-g skills. DM+1 to enlist, commission, and promotion in the Merchant (Free Trader) career.",
+      "age_cost": 3,
+      "max_age": 22,
+      "qualification": {
+        "characteristic": "INT",
+        "target": 4,
+        "homeworld_condition": {"size": 0},
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "DEX", "threshold": 8, "dm": 1}
+        ],
+        "note": "Requires homeworld size 0. Then INT 4+, DM+1 if DEX 8+."
+      },
+      "enrollment_auto_skills": ["Vacc Suit 1"],
+      "enrollment_skill_picks": 2,
+      "enrollment_skill_pool": ["Astrogation", "Electronics", "Engineer", "Profession"],
+      "enrollment_pick_level": 0,
+      "graduation": {
+        "characteristic": "INT",
+        "target": 8,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "DEX", "threshold": 6, "dm": 1}
+        ],
+        "on_graduation": {
+          "DEX": 1,
+          "SOC": -2,
+          "fixed_skills": ["Pilot 0"],
+          "additional_skills_from_enrollment_0": 3,
+          "skills_from_enrollment_1": 1,
+          "permanent": {
+            "spacer_career_dm": 1,
+            "spacer_career_id": "merchant",
+            "spacer_assignment_id": "free_trader"
+          },
+          "note": "Graduated. DEX+1, SOC-2, Pilot 0. Three enrollment skills at level 0, one enrollment skill at level 1. DM+1 enlist/commission/promotion in Merchant (Free Trader)."
+        },
+        "on_honours": {
+          "DEX": 1,
+          "SOC": -2,
+          "fixed_skills": ["Pilot 0"],
+          "jack_of_all_trades": 1,
+          "additional_skills_from_enrollment_0": 3,
+          "skills_from_enrollment_1": 1,
+          "permanent": {
+            "spacer_career_dm": 1,
+            "spacer_career_id": "merchant",
+            "spacer_assignment_id": "free_trader"
+          },
+          "note": "Graduated with Honours. DEX+1, SOC-2, Pilot 0, Jack-of-all-Trades 1. Three enrollment skills at level 0, one at level 1. DM+1 enlist/commission/promotion in Merchant (Free Trader)."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
+    }
+  }
+}

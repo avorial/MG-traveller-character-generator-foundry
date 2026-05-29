@@ -1,0 +1,5 @@
+{
+  "deprecated": true,
+  "replaced_by": "imperial_aslan",
+  "note": "Original 'aslan' id was renamed once home-society became part of the schema; the Imperial-raised variant is now the canonical Aslan option in this generator."
+}

@@ -1,0 +1,22 @@
+{
+  "name": "mg-traveller-character-generator-foundry",
+  "version": "0.1.0",
+  "description": "Foundry VTT module for Mongoose Traveller 2e character creation ported from MG Traveller Character Generator.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "sync:data": "node scripts/sync-data.mjs",
+    "validate:data": "node scripts/validate-data.mjs",
+    "package": "npm run build && node scripts/package.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "archiver": "^7.0.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,0 +1,127 @@
+<section class="traveller-creator">
+  <header class="tc-header">
+    <div>
+      <h2>{{character.name}}</h2>
+      <p>Phase: {{character.phase}} | Age {{character.age}} | {{character.species_id}}</p>
+    </div>
+    <div class="tc-header-actions">
+      <button type="button" data-action="reset"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      {{#if canCreate}}
+        <button type="button" class="primary" data-action="createActor"><i class="fa-solid fa-user-plus"></i> Create Actor</button>
+      {{/if}}
+    </div>
+  </header>
+
+  <div class="tc-grid">
+    <aside class="tc-sheet">
+      <label>
+        Name
+        <input name="name" type="text" value="{{character.name}}" placeholder="Unnamed Traveller">
+      </label>
+
+      <div class="tc-stats">
+        {{#each stats as |entry|}}
+          <div class="tc-stat">
+            <span>{{entry.[0]}}</span>
+            <strong>{{entry.[1]}}</strong>
+          </div>
+        {{/each}}
+      </div>
+
+      <h3>Skills</h3>
+      <ol class="tc-list">
+        {{#each character.skills as |skill|}}
+          <li>{{skill.name}}{{#if skill.speciality}} ({{skill.speciality}}){{/if}} {{skill.level}}</li>
+        {{/each}}
+      </ol>
+
+      <h3>Recent Log</h3>
+      <ol class="tc-list">
+        {{#each notes as |note|}}
+          <li>{{note}}</li>
+        {{/each}}
+      </ol>
+    </aside>
+
+    <main class="tc-stage">
+      {{#if (eq character.phase "characteristics")}}
+        <h3>Roll Characteristics</h3>
+        <p>Roll STR, DEX, END, INT, EDU, and SOC. Heroic and GM-forced variants are implemented in the engine API and can be wired into this screen as parity work continues.</p>
+        <button type="button" class="primary" data-action="roll">Roll 2D x 6</button>
+      {{/if}}
+
+      {{#if (eq character.phase "society")}}
+        <h3>Society Of Origin</h3>
+        <div class="tc-card-grid">
+          {{#each societies as |society|}}
+            <button type="button" data-action="chooseSociety" data-id="{{society.id}}">
+              <strong>{{society.name}}</strong>
+              <span>{{society.description}}</span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if (eq character.phase "species")}}
+        <h3>Species</h3>
+        <div class="tc-card-grid">
+          {{#each species as |sp|}}
+            <button type="button" data-action="applySpecies" data-id="{{sp.id}}">
+              <strong>{{sp.name}}</strong>
+              <span>{{sp.description}}</span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if (eq character.phase "background")}}
+        <h3>Background Package</h3>
+        <p>This v1 screen uses the generator's package data to advance into career selection quickly.</p>
+        <div class="tc-card-grid">
+          {{#each backgroundPackages as |pkg|}}
+            <button type="button" data-action="applyBackgroundPackage" data-id="{{pkg.id}}">
+              <strong>{{pkg.name}}</strong>
+              <span>{{pkg.description}}</span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if (eq character.phase "pre_career")}}
+        <h3>Pre-Career Education</h3>
+        <p>The detailed education branch is reserved for the full parity port. Use a background package flow for now, or continue with a career package by changing phase through the engine/debug API.</p>
+      {{/if}}
+
+      {{#if (eq character.phase "career")}}
+        <h3>Career Package</h3>
+        <p>Career packages are implemented as a data-driven fast path while the full term-by-term career loop is being ported.</p>
+        <div class="tc-card-grid">
+          {{#each careerPackages as |pkg|}}
+            <button type="button" data-action="applyCareerPackage" data-id="{{pkg.id}}">
+              <strong>{{pkg.name}}</strong>
+              <span>{{pkg.description}}</span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if (eq character.phase "skill_package")}}
+        <h3>Final Skill Package</h3>
+        <div class="tc-card-grid">
+          {{#each skillPackages as |pkg|}}
+            <button type="button" data-action="applySkillPackage" data-id="{{pkg.id}}">
+              <strong>{{pkg.name}}</strong>
+              <span>{{pkg.description}}</span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if (eq character.phase "done")}}
+        <h3>Ready For Foundry</h3>
+        <p>This Traveller can now be created as a native `mgt2e` actor with term, item, skill, finance, and sophont data.</p>
+        <button type="button" class="primary" data-action="createActor"><i class="fa-solid fa-user-plus"></i> Create Actor</button>
+      {{/if}}
+    </main>
+  </div>
+</section>

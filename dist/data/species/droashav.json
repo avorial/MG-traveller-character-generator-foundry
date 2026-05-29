@@ -1,0 +1,29 @@
+{
+    "id":  "droashav",
+    "name":  "Droashav",
+    "description":  "Six-limbed reptilian humanoids. Tough, practical survivors with possible lost spacefaring origins.",
+    "characteristic_modifiers":  {
+                                     "STR":  2,
+                                     "DEX":  -1,
+                                     "END":  3,
+                                     "INT":  -1,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  100,
+    "traits":  [
+                   {
+                       "name":  "Natural Defences",
+                       "description":  "Droashav tough hide and generally resilient constitution grant Protection +1 against physical damage. They can use their rear foot-claws in close combat as a natural weapon, dealing 1D+2 damage using the Melee (Natural) skill."
+                   },
+                   {
+                       "name":  "Six-Limbed",
+                       "description":  "Droashav possess two pairs of arms and one pair of legs. They can carry and use items in up to four hands simultaneously, though most conventional equipment is not designed for this body plan. At the Referee\u0027s discretion, tasks that benefit from additional hands (steadying, holding, bracing) may gain DM+1."
+                   }
+               ],
+    "aliases":  [
+
+                ],
+    "source":  "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

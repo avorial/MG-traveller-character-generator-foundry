@@ -1,0 +1,40 @@
+{
+    "id":  "hierate_aslan",
+    "name":  "Aslan (Hierate)",
+    "description":  "Same biology as Imperial Aslan but raised within the Aslan Hierate — a confederation of powerful clans governed by ancient codes of honor, biological land-hunger, and strict gender-defined roles. Clan law, honor duels, and territorial acquisition define every aspect of life.",
+    "characteristic_modifiers":  {
+                                     "STR":  2,
+                                     "DEX":  -2,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  300,
+    "traits":  [
+                   {
+                       "name":  "Dewclaw",
+                       "description":  "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (Natural) skill and does 1D+2 damage."
+                   },
+                   {
+                       "name":  "Heightened Senses",
+                       "description":  "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+                   },
+                   {
+                       "name":  "Honour Bound",
+                       "description":  "Aslan raised in the Hierate operate under a strict code of honour. They cannot back down from a direct challenge without suffering a loss of face (SOC−1 for the remainder of the encounter). Conversely, a Hierate Aslan who demonstrates superior honour or personal courage gains DM+2 on all social checks with other Aslan (Hierate or Imperial) for the remainder of that session. A deal struck with a Hierate Aslan on a matter of honour is absolute — they will not break it regardless of consequences."
+                   },
+                   {
+                       "name":  "Land Sense",
+                       "description":  "The Aslan drive to acquire and hold territory is biological, not merely cultural. An Aslan who owns property (a starship of their own, a land deed, a base of operations) gains DM+1 on all Morale-equivalent checks and checks to resist fear or intimidation while on their own ground. Landless Aslan are subtly restless and may develop the ihatei drive — the compulsion to seek new territory by striking out alone."
+                   }
+               ],
+    "aliases":  [],
+    "source":  "Traveller Core Rulebook; Aliens of Charted Space Vol. 1, Mongoose Publishing",
+    "starting_age": 14,
+    "aging_starts_term": 6,
+    "aging_dm_multiplier": 2,
+    "extra_characteristics_required": ["TER"],
+    "uses_clan_shares": true
+}

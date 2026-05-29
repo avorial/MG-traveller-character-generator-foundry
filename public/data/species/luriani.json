@@ -1,0 +1,29 @@
+{
+    "id":  "luriani",
+    "name":  "Luriani",
+    "description":  "Aquatic-adapted humans. Strong swimmers, emotionally expressive, very physical in how they communicate.",
+    "characteristic_modifiers":  {
+                                     "STR":  0,
+                                     "DEX":  1,
+                                     "END":  1,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  -2
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  60,
+    "traits":  [
+                   {
+                       "name":  "Aquatic Adaptation",
+                       "description":  "Luriani can dive to a depth of 500 metres without artificial aids (at standard atmospheric pressure) and can survive without breathing for up to an hour, though it becomes increasingly unpleasant after 20 minutes. They gain DM+2 on all Survival checks made in an aquatic environment and DM+2 on all checks involving swimming or underwater activity."
+                   },
+                   {
+                       "name":  "Histrionics",
+                       "description":  "Luriani express emotion freely and compulsively. Any time a Luriani attempts to conceal their feelings, DM−2 applies to relevant Persuade or Deception checks. Conversely, DM+2 applies to any situation where the Luriani wants to draw attention to themselves — this does not make them more persuasive, only more noticeable. A Luriani actor can steal a scene with a sudden outpouring of emotion, but that does not mean the performance will impress the critics."
+                   }
+               ],
+    "aliases":  [
+
+                ],
+    "source":  "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

@@ -1,0 +1,5 @@
+{
+  "deprecated": true,
+  "replaced_by": "imperial_vargr",
+  "note": "Original 'vargr' id was renamed once home-society became part of the schema; the Imperial-raised variant is now the canonical Vargr option in this generator."
+}

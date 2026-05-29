@@ -1,0 +1,41 @@
+{
+  "description": "Explanations of non-cash mustering-out benefits gained when leaving a career.",
+  "rules": {
+    "benefits_per_term": 1,
+    "rank_bonuses": {
+      "1-2": "1 bonus benefit roll",
+      "3-4": "2 bonus benefit rolls",
+      "5-6": "3 bonus benefit rolls, and DM+1 to all Benefit rolls in this career"
+    },
+    "cash_column_max_rolls": 3,
+    "gambler_bonus": "A Traveller with the Gambler skill gains DM+1 to all rolls on Cash columns."
+  },
+  "benefits": {
+    "Weapon": "Select any weapon worth up to Cr3,000 at TL 12 or below. If rolled again, choose: another weapon OR Gun Combat +1 or Melee +1.",
+    "Gun": "Select any common or military ranged weapon worth up to Cr3,000 at TL 12 or below. If rolled again, choose: another gun OR Gun Combat +1.",
+    "Blade": "Select any blade worth up to Cr1,000 at TL 12 or below. If rolled again, choose: another blade OR Melee (blade) +1.",
+    "Armour": "Select any armour worth up to Cr10,000 at TL 12 or below. If rolled again, choose: another set OR trade up to Cr25,000.",
+    "Combat Implant": "Select any augmentation (cybernetic implant) worth up to Cr75,000 at TL 12 or below. If rolled again, choose: a different augmentation OR improve your existing one.",
+    "Scientific Equipment": "Select any scientific equipment worth up to Cr2,000 at TL 12 or below. If rolled again, choose: more equipment OR Electronics +1 or Science +1.",
+    "Personal Vehicle": "A ground car or air/raft worth up to Cr300,000 at TL 10 or below. If rolled again, gain Drive +1 or Flyer +1 instead.",
+    "TAS Membership": "Travellers' Aid Society membership — lifetime, non-transferable. Grants access to Class A and B starport lounges and a free High Passage every two months. If rolled again, gain 2 Ship Shares instead.",
+    "Scout Ship": "A Scout/Courier on detached duty — still owned by the Scout Service. Expect recall missions. Cannot be sold. If rolled again, re-roll on the same benefits table.",
+    "Free Trader": "A Type-A Free Trader. Each benefit roll pays 25% of the mortgage; four rolls clears it. Can substitute a Far Trader. Roll 1D on the Spacecraft Quirks table.",
+    "Lab Ship": "A Type-L Lab Ship. Each benefit roll pays 25% of the mortgage; four rolls clears it. Roll 1D on the Old Ships table.",
+    "Ship's Boat": "Any small craft worth up to MCr10 at TL 12 or below. If rolled again, gain Pilot (small craft) +1 instead; alternatively, take 1 Ship Share.",
+    "Yacht": "A Yacht. Each benefit roll pays 25% of the mortgage; four rolls clears it. Roll 1D on the Old Ships table.",
+    "Ally": "Gain an Ally.",
+    "Contact": "Gain a Contact.",
+    "Ship Share": "One ship share worth MCr1 (cannot be redeemed for cash).",
+    "2 Ship Shares": "Two ship shares (MCr1 each, not redeemable for cash).",
+    "1D Ship Shares": "Roll 1D ship shares.",
+    "2D Ship Shares": "Roll 2D ship shares.",
+    "INT +1": "Increase INT by 1 (up to racial maximum).",
+    "EDU +1": "Increase EDU by 1 (up to racial maximum).",
+    "SOC +1": "Increase SOC by 1. If at or above racial maximum, the excess converts to a Ship Share.",
+    "STR +1": "Increase STR by 1 (up to racial maximum).",
+    "DEX +1": "Increase DEX by 1 (up to racial maximum).",
+    "END +1": "Increase END by 1 (up to racial maximum).",
+    "Characteristic Increases": "Increase the listed characteristic, up to racial maximum (15 for most species). Any SOC increase beyond racial max converts to Ship Shares instead."
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "deprecated": true,
+  "replaced_by": "imperial_human",
+  "note": "The default human was renamed to 'imperial_human' when society-of-origin became part of the species schema. This file is kept only so older saves can alias through the loader — the loader skips deprecated entries when enumerating species."
+}

@@ -1,0 +1,33 @@
+{
+    "id":  "imperial_aslan",
+    "name":  "Aslan (Imperial Raised)",
+    "description":  "Large, lion-like humanoids. Honor and status matter deeply. In the Imperium, that drive shows up as ambition, contracts, and controlled aggression.",
+    "characteristic_modifiers":  {
+                                     "STR":  2,
+                                     "DEX":  -2,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "traits":  [
+                   {
+                       "name":  "Dewclaw",
+                       "description":  "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (Natural) skill and does 1D+2 damage."
+                   },
+                   {
+                       "name":  "Heightened Senses",
+                       "description":  "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+                   },
+                   {
+                       "name":  "Cultural Liminality",
+                       "description":  "Raised between Imperial bureaucracy and distant Aslan tradition. DM+1 to Diplomat or Advocate checks that involve bridging Imperial and Aslan parties. Hierate-born Aslan see this character as not fully kin — DM-1 to Persuade checks against Hierate society."
+                   }
+               ],
+    "sort_order":  30,
+    "aliases":  [
+                    "aslan"
+                ],
+    "source":  "Traveller Core Rulebook, Mongoose Publishing; home-society flavor derived for the Imperium-raised variant"
+}

@@ -1,0 +1,29 @@
+{
+    "id":  "faar",
+    "name":  "Faar",
+    "description":  "Short, dense humanoids from high-gravity worlds. Highly advanced, pleasure-loving at home, serious when off-world.",
+    "characteristic_modifiers":  {
+                                     "STR":  0,
+                                     "DEX":  0,
+                                     "END":  0,
+                                     "INT":  1,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  110,
+    "traits":  [
+                   {
+                       "name":  "Closed Book",
+                       "description":  "Away from their homeworld, Faar are taciturn and closed-off. They are exceptionally difficult to read. All skills or abilities that depend on understanding a Faar\u0027s emotional state, reactions, or intentions — including relevant Recon, Persuade, and psionic checks — suffer DM−2 when targeting a Faar."
+                   },
+                   {
+                       "name":  "Homesickness",
+                       "description":  "A Faar away from Alphaaric — even at Faarview in the same system — is prone to bouts of intense homesickness. Every 2D days, the Faar must make an Average (8+) END check or fall into melancholy, applying a blanket DM−1 to all tasks not connected with immediate danger or survival. This lasts 1D days. The check resets when the episode ends."
+                   }
+               ],
+    "aliases":  [
+
+                ],
+    "source":  "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

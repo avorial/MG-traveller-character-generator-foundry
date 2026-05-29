@@ -1,0 +1,5 @@
+{
+  "deprecated": true,
+  "replaced_by": "zhodani",
+  "note": "Merged into the canonical 'zhodani' entry. Any save with species_id 'zhodani_human' resolves to 'zhodani'."
+}

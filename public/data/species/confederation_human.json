@@ -1,0 +1,30 @@
+{
+    "id":  "confederation_human",
+    "name":  "Non-Solomani Human (Confederation)",
+    "description":  "A human living under Solomani rule with no recognized ancestry. The underclass. Party career is closed entirely.",
+    "characteristic_modifiers":  {
+                                     "STR":  0,
+                                     "DEX":  0,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  202,
+    "traits":  [
+                   {
+                       "name":  "Non-Solomani Status",
+                       "description":  "Cannot qualify for the Solomani Party career. Cannot serve as a SolSec Field Agent or Secret Agent (Administration is possible in a supporting role). No penalty to advancement in the Drifter career. No Party Patronage benefit — SOC modifier does NOT apply to qualification rolls. Normal advancement applies in all other careers."
+                   },
+                   {
+                       "name":  "Outsider\u0027s Perspective",
+                       "description":  "Having navigated a society that does not fully accept them, Non-Solomani humans in the Confederation develop a sharp awareness of social dynamics. DM+1 to Recon checks that involve reading political or social situations — noticing who the real power is, detecting institutional bias, or understanding unspoken social hierarchies."
+                   }
+               ],
+    "aliases":  [
+                    "non_solomani",
+                    "confederation_non_solomani"
+                ],
+    "source":  "Solomani Confederation sourcebook, Mongoose Publishing"
+}

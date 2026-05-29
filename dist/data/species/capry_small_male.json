@@ -1,0 +1,29 @@
+{
+    "id":  "capry_small_male",
+    "name":  "Capry — Small Male",
+    "description":  "Smaller, fragile Capry with high intelligence. Thinkers, scientists, problem-solvers.",
+    "characteristic_modifiers":  {
+                                     "STR":  -4,
+                                     "DEX":  3,
+                                     "END":  -3,
+                                     "INT":  0,
+                                     "EDU":  2,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  92,
+    "traits":  [
+                   {
+                       "name":  "Liberating Fatalism",
+                       "description":  "A Capry may choose three areas of special interest (which can change over time) and gains DM+1 whenever they carry out a task that benefits from near-obsessive focus on one of those areas — whether scientific research, navigation, computing, or any other appropriate activity at the Referee\u0027s discretion. This reflects the Capry drive to experience and excel at things that matter to them while time remains."
+                   },
+                   {
+                       "name":  "Third Hand",
+                       "description":  "All Capry can use their feather-finger tail appendage for simple tasks such as eating, opening a door, or steadying a component. The tail is not strong enough to wield a weapon or bear the Capry\u0027s weight, but whenever it can assist in a task — holding something in place during a delicate repair, for example — DM+2 may be applied to the relevant check."
+                   }
+               ],
+    "aliases":  [
+
+                ],
+    "source":  "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}
