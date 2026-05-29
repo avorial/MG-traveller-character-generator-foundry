@@ -64,4 +64,38 @@ describe("TravellerLifepathEngine", () => {
     expect(character.phase).toBe("skill_package");
     expect(character.equipment.some((item) => item.name === "Scout Ship")).toBe(true);
   });
+
+  it("handles military commission rolls from career data", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([10]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 8, INT: 8, EDU: 8, SOC: 9 };
+    character = engine.startTerm(character, "navy", "line_crew").character;
+    character = engine.commissionRoll(character).character;
+    expect(character.current_term?.commissioned).toBe(true);
+    expect(character.current_term?.rank).toBe(1);
+    expect(character.current_term?.rank_title).toBe("Ensign");
+  });
+
+  it("creates and resolves injury choices", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([4]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.applyInjury(character, 5).character;
+    expect(character.pending_injury_choice?.title).toBe("Injured");
+    character = engine.resolveInjuryChoice(character, "END").character;
+    character = engine.resolveInjuryPayment(character, false).character;
+    expect(character.characteristics.END).toBe(6);
+    expect(character.pending_injury_treatment_choice).toBeNull();
+  });
+
+  it("applies aging after the fourth term", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([2]));
+    let character = engine.freshCharacter();
+    character.total_terms = 3;
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.startTerm(character, "scout", "courier").character;
+    character = engine.endTerm(character, true).character;
+    expect(character.total_terms).toBe(4);
+    expect(character.characteristics.STR).toBeLessThan(7);
+  });
 });

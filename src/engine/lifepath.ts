@@ -417,6 +417,36 @@ export class TravellerLifepathEngine {
     return { career, roll, advanced, character: next };
   }
 
+  commissionRoll(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const term = this.requireCurrentTerm(next);
+    const career = this.rules.career(term.career_id);
+    const commission = career.commission;
+    if (!commission) throw new Error(`${career.name ?? term.career_id} does not have commission rolls.`);
+    if (term.commissioned || next.term_history.some((entry) => entry.career_id === term.career_id && entry.commissioned)) {
+      throw new Error("Already commissioned in this career.");
+    }
+    if (term.term_number > 1 && getCharacteristic(next, "SOC") < 9) throw new Error("Commission after the first term requires SOC 9+.");
+    const termPenalty = -(term.term_number - 1);
+    const academyDm = next.academy_commission_career_id === term.career_id ? next.academy_commission_dm : 0;
+    const hardKnocksDm = next.completed_careers.length === 0 ? Number(next.pre_career_permanent_dms.first_career_commission_dm ?? 0) : 0;
+    const dm = this.checkDm(next, commission) + termPenalty + academyDm + hardKnocksDm + next.dm_next_advancement + next.dm_permanent_advancement;
+    const roll = this.roller.roll2D(dm);
+    const commissioned = roll.total >= Number(commission.target ?? 8);
+    if (commissioned) {
+      term.commissioned = true;
+      term.rank = 1;
+      term.rank_title = this.rankTitle(career, true, 1);
+      this.applyRankBonus(next, career, term);
+      term.advanced = false;
+    }
+    next.dm_next_advancement = 0;
+    next.academy_commission_career_id = null;
+    next.academy_commission_dm = 0;
+    next.notes.push(`${commissioned ? "Commissioned" : "Failed commission"} in ${career.name ?? term.career_id}.`);
+    return { career, roll, commissioned, character: next };
+  }
+
   endTerm(character: TravellerCharacter, leaveCareer = false, leftDueTo = "voluntary"): EngineResult {
     const next = cloneCharacter(character);
     const term = this.requireCurrentTerm(next);
@@ -424,6 +454,7 @@ export class TravellerLifepathEngine {
     next.term_history.push(term);
     next.total_terms += 1;
     next.age += 4;
+    const aging = this.applyAgingIfNeeded(next);
     next.current_term = null;
     next.failed_qualifications_this_term = 0;
     const mustLeave = leaveCareer || next.force_career_end || term.survived === false;
@@ -446,7 +477,7 @@ export class TravellerLifepathEngine {
       next.phase = next.pending_benefit_rolls > 0 ? "mustering" : "career";
     }
     next.notes.push(`Ended ${career.name ?? term.career_id} term ${term.term_number}.`);
-    return { career, term, character: next };
+    return { career, term, aging, character: next };
   }
 
   musterOutRoll(character: TravellerCharacter, careerId?: string, column: "cash" | "benefit" = "benefit"): EngineResult {
@@ -474,6 +505,66 @@ export class TravellerLifepathEngine {
     if (next.pending_benefit_rolls <= 0) next.phase = "skill_package";
     next.notes.push(`Mustering out ${resolvedColumn}: ${result}.`);
     return { career, roll: rawRoll, tableRoll: total, column: resolvedColumn, result, character: next };
+  }
+
+  applyInjury(character: TravellerCharacter, result?: number): EngineResult {
+    const next = cloneCharacter(character);
+    const roll = result ? { dice: [], natural: result, total: result, dm: 0 } : this.roller.rollD(6);
+    const table = this.rules.table<any>("injury");
+    const entry = table.entries?.[String(Math.max(1, Math.min(6, roll.total)))] ?? {};
+    const pending = this.injuryPending(entry, roll.total);
+    if (pending) {
+      next.pending_injury_choice = pending;
+      next.notes.push(`Injury: ${entry.title ?? "Injury"}; characteristic choice pending.`);
+    } else {
+      next.notes.push(`Injury: ${entry.title ?? "Lightly Injured"}; no permanent effect.`);
+    }
+    return { roll, entry, pendingChoice: pending, character: next };
+  }
+
+  resolveInjuryChoice(character: TravellerCharacter, chosenStat: "STR" | "DEX" | "END"): EngineResult {
+    const next = cloneCharacter(character);
+    const pending = next.pending_injury_choice;
+    if (!pending) throw new Error("No pending injury choice.");
+    const choices = pending.choices as string[] | undefined;
+    if (choices?.length && !choices.includes(chosenStat)) throw new Error(`${chosenStat} is not a valid injury choice.`);
+    const damage = Number(pending.damage_to_chosen ?? 0);
+    const auto = Number(pending.auto_reduce_others ?? 0);
+    const others = (["STR", "DEX", "END"] as const).filter((stat) => stat !== chosenStat);
+    const primaryLoss = Math.min(getCharacteristic(next, chosenStat), damage);
+    const secondaryLosses = others.map((stat) => ({ stat, loss: Math.min(getCharacteristic(next, stat), auto) })).filter((entry) => entry.loss > 0);
+    const totalLoss = primaryLoss + secondaryLosses.reduce((sum, entry) => sum + entry.loss, 0);
+    const grossDebt = totalLoss * 5000;
+    next.pending_injury_treatment_choice = {
+      chosen_stat: chosenStat,
+      damage_to_chosen: damage,
+      auto_reduce_others: auto,
+      secondary_losses: secondaryLosses,
+      total_loss: totalLoss,
+      gross_debt: grossDebt,
+      net_debt: grossDebt,
+      title: pending.title ?? "Injury"
+    };
+    next.pending_injury_choice = null;
+    return { chosenStat, totalLoss, grossDebt, character: next };
+  }
+
+  resolveInjuryPayment(character: TravellerCharacter, pay: boolean): EngineResult {
+    const next = cloneCharacter(character);
+    const pending = next.pending_injury_treatment_choice;
+    if (!pending) throw new Error("No pending injury treatment choice.");
+    if (pay) {
+      next.medical_debt += Number(pending.net_debt ?? pending.gross_debt ?? 0);
+    } else {
+      const chosen = String(pending.chosen_stat) as CharacteristicKey;
+      setCharacteristic(next, chosen, getCharacteristic(next, chosen) - Number(pending.damage_to_chosen ?? 0));
+      for (const entry of pending.secondary_losses as Array<{ stat: CharacteristicKey; loss: number }> ?? []) {
+        setCharacteristic(next, entry.stat, getCharacteristic(next, entry.stat) - entry.loss);
+      }
+    }
+    next.pending_injury_treatment_choice = null;
+    next.notes.push(pay ? "Paid for injury treatment." : "Accepted injury characteristic loss.");
+    return { paid: pay, character: next };
   }
 
   private checkDm(character: TravellerCharacter, check: any): number {
@@ -680,6 +771,81 @@ export class TravellerLifepathEngine {
       if (stat) setCharacteristic(character, stat[1] as CharacteristicKey, getCharacteristic(character, stat[1] as CharacteristicKey) + Number(stat[2]));
       else character.equipment.push({ name: result, quantity: 1, notes: "Mustering-out benefit" });
     }
+  }
+
+  private injuryPending(entry: any, result: number): Record<string, unknown> | null {
+    const effects = entry.effects ?? [];
+    if (!effects.length) return null;
+    const physical = ["STR", "DEX", "END"];
+    const random = effects.find((effect: any) => effect.type === "reduce_physical_random");
+    const choice = effects.find((effect: any) => effect.type === "reduce_choice");
+    const other = effects.find((effect: any) => effect.type === "reduce_physical_other");
+    if (random) {
+      return {
+        roll: result,
+        title: entry.title ?? "Injury",
+        damage_to_chosen: random.amount === "1D" ? this.roller.d6() : Number(random.amount ?? 0),
+        auto_reduce_others: Number(other?.amount ?? 0),
+        choices: physical,
+        prompt: entry.text ?? "Choose which physical characteristic takes the damage."
+      };
+    }
+    if (choice) {
+      return {
+        roll: result,
+        title: entry.title ?? "Injury",
+        damage_to_chosen: Number(choice.amount ?? 0),
+        auto_reduce_others: 0,
+        choices: choice.characteristics ?? physical,
+        prompt: entry.text ?? "Choose which characteristic takes the damage."
+      };
+    }
+    return null;
+  }
+
+  private applyAgingIfNeeded(character: TravellerCharacter): Record<string, unknown> | null {
+    const species = this.rules.species(character.species_id) ?? {};
+    const startsAt = Number(species.aging_starts_term ?? this.rules.table<any>("aging").triggers_at_term ?? 4);
+    if (character.total_terms < startsAt) return null;
+    const roll = this.roller.roll2D(-character.total_terms);
+    const table = this.rules.table<any>("aging");
+    const entry = this.agingEntry(table, roll.total);
+    const reductions = this.applyAgingEffects(character, entry.effects ?? []);
+    const crisis = reductions.some((entry) => getCharacteristic(character, entry.stat as CharacteristicKey) <= 0);
+    if (crisis) {
+      const debt = this.roller.d6() * 10000;
+      character.pending_injury_treatment_choice = {
+        kind: "aging_crisis",
+        gross_debt: debt,
+        net_debt: debt,
+        title: "Aging crisis"
+      };
+      character.notes.push("Aging crisis: medical care needed to keep reduced characteristics at 1.");
+    }
+    character.notes.push(`Aging roll ${roll.total}: ${entry.title ?? "Aging"}.`);
+    return { roll, entry, reductions, crisis };
+  }
+
+  private agingEntry(table: any, total: number): any {
+    if (total <= -6) return table.entries?.["-6_or_less"] ?? {};
+    if (total >= 1) return table.entries?.["1_or_more"] ?? {};
+    return table.entries?.[String(total)] ?? {};
+  }
+
+  private applyAgingEffects(character: TravellerCharacter, effects: any[]): Array<{ stat: string; amount: number }> {
+    const reductions: Array<{ stat: string; amount: number }> = [];
+    const physical: CharacteristicKey[] = ["STR", "DEX", "END"];
+    const mental: CharacteristicKey[] = ["INT", "EDU", "SOC"];
+    for (const effect of effects) {
+      const pool = effect.type === "reduce_mental" ? mental : physical;
+      const count = Math.min(Number(effect.count ?? 1), pool.length);
+      const amount = Number(effect.amount ?? 0);
+      for (const stat of pool.slice(0, count)) {
+        setCharacteristic(character, stat, getCharacteristic(character, stat) - amount);
+        reductions.push({ stat, amount });
+      }
+    }
+    return reductions;
   }
 
   finalizeRobot(robotConfig: Record<string, unknown>): EngineResult {
