@@ -404,9 +404,66 @@ export class TravellerLifepathEngine {
     const text = String(career.events?.[String(Math.max(2, Math.min(12, roll.total)))] ?? "No event.");
     term.events.push(text);
     this.applyInlineEventEffects(next, term, text);
+    let lifeEvent: unknown = null;
+    if (/Life Event|Life event|Life Events Table/i.test(text)) {
+      const result = this.lifeEventRoll(next, this.isAslanLifeEventCharacter(next));
+      lifeEvent = { roll: result.roll, event: result.event, subEvent: result.subEvent ?? null };
+      Object.assign(next, result.character);
+    }
     next.dm_next_events = 0;
     next.notes.push(`Career event: ${text}`);
-    return { career, roll, event: text, character: next };
+    return { career, roll, event: text, lifeEvent, character: next };
+  }
+
+  lifeEventRoll(character: TravellerCharacter, aslan = false): EngineResult {
+    const next = cloneCharacter(character);
+    const table = aslan ? this.rules.table<any>("aslan_life_events").aslan_life_events?.results : this.rules.table<any>("life_events").entries;
+    const roll = this.roller.roll2D();
+    const key = String(Math.max(2, Math.min(12, roll.total)));
+    const raw = table?.[key];
+    const title = typeof raw === "string" ? raw.split(":")[0] : raw?.title ?? "Life Event";
+    const text = typeof raw === "string" ? raw : raw?.text ?? "Life Event.";
+    let subEvent: string | null = null;
+    if (!aslan && raw?.sub_table) {
+      const subRoll = this.roller.rollD(6);
+      subEvent = String(raw.sub_table[String(subRoll.total)] ?? "");
+      this.applyLifeEventEffects(next, title, `${text} ${subEvent}`, aslan);
+      next.notes.push(`Life event: ${title}; ${subEvent}`);
+      return { roll, event: { title, text }, subEvent, character: next };
+    }
+    this.applyLifeEventEffects(next, title, text, aslan);
+    next.notes.push(`Life event: ${title}.`);
+    return { roll, event: { title, text }, character: next };
+  }
+
+  resolveLifeEventChoice(character: TravellerCharacter, choice: string): EngineResult {
+    const next = cloneCharacter(character);
+    const pending = next.pending_life_event_choice;
+    if (!pending) throw new Error("No pending life event choice.");
+    const kind = String(pending.kind ?? "");
+    if (kind === "relationship_end" || kind === "betrayal") {
+      const resolved = choice === "enemy" ? "enemy" : "rival";
+      const index = next.associates.findIndex((associate) => ["ally", "contact"].includes(associate.kind));
+      if (index >= 0 && kind === "betrayal") next.associates[index] = { kind: resolved, description: `Former ${next.associates[index].kind} betrayed you` };
+      else next.associates.push({ kind: resolved, description: `${resolved} from life event` });
+    } else if (kind === "crime") {
+      if (choice === "prisoner") next.forced_next_career_id = "prisoner";
+      else {
+        const term = next.current_term;
+        if (term) term.benefit_forfeited = true;
+        else next.pending_benefit_rolls = Math.max(0, next.pending_benefit_rolls - 1);
+      }
+    } else if (kind === "pre_career_any_skill") {
+      const level = Number(pending.level ?? 0);
+      const [name, speciality, parsedLevel] = parseSkillGain(/\d+$/.test(choice) ? choice : `${choice} ${level}`);
+      if (!String(pending.excluded ?? "").includes(name)) addSkill(next, name, parsedLevel, speciality, true);
+    } else if (kind === "pre_career_war_choice") {
+      if (choice === "drifter") next.forced_next_career_id = "drifter";
+      else if (choice === "draft") next.pending_life_event_choice = { kind: "draft", options: ["army", "marine", "navy"] };
+    }
+    next.pending_life_event_choice = null;
+    next.notes.push(`Resolved life event choice: ${choice}.`);
+    return { choice, character: next };
   }
 
   mishapRoll(character: TravellerCharacter): EngineResult {
@@ -794,6 +851,73 @@ export class TravellerLifepathEngine {
     if (/Gain (?:an|one) Ally/i.test(text)) character.associates.push({ kind: "ally", description: `Ally from ${term.career_id} event` });
     if (/Gain (?:an|one) Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: `Enemy from ${term.career_id} event` });
     if (/Gain (?:a|one) Rival/i.test(text)) character.associates.push({ kind: "rival", description: `Rival from ${term.career_id} event` });
+    if (/transfer to (?:the )?Marines/i.test(text)) character.pending_transfer_career_id = "marine";
+    if (/transfer to (?:the )?Army/i.test(text)) character.pending_transfer_career_id = "army";
+    if (/transfer to (?:the )?Confederation Army/i.test(text)) character.pending_transfer_career_id = "confederation_army";
+    if (/transfer to any other non-military career|transfer to any other career|transfer to any career/i.test(text)) character.pending_transfer_career_id = "any";
+    if (/you are ejected from this career|losing your place|forced out of the career/i.test(text)) character.ejected_by_event = true;
+    if (/lose (?:one|1) Benefit roll|Lose one benefit roll|Lose one Benefit roll/i.test(text)) term.benefit_forfeited = true;
+  }
+
+  private applyLifeEventEffects(character: TravellerCharacter, title: string, text: string, aslan: boolean): void {
+    if (/Sickness or Injury/i.test(title) || /Roll on the Injury/i.test(text)) {
+      const injury = this.applyInjury(character);
+      Object.assign(character, injury.character);
+      return;
+    }
+    if (/Ending of Relationship/i.test(title)) {
+      character.pending_life_event_choice = { kind: "relationship_end", options: ["rival", "enemy"], prompt: text };
+    } else if (/Improved Relationship|New Relationship/i.test(title)) {
+      character.associates.push({ kind: "ally", description: "Ally from life event" });
+    } else if (/New Contact/i.test(title)) {
+      character.associates.push({ kind: "contact", description: "Contact from life event" });
+    } else if (/Betrayal/i.test(title)) {
+      character.pending_life_event_choice = { kind: "betrayal", options: ["rival", "enemy"], prompt: text };
+    } else if (/Travel/i.test(title)) {
+      character.dm_next_qualification += 2;
+    } else if (/Good Fortune/i.test(title)) {
+      character.good_fortune_benefit_dm += 2;
+      character.dm_next_benefit += 2;
+    } else if (/Crime|Dishonoured/i.test(title)) {
+      character.pending_life_event_choice = { kind: "crime", options: ["lose_benefit", "prisoner"], prompt: text };
+    } else if (/Aliens/i.test(text)) {
+      addSkill(character, aslan ? "Tolerance" : "Science", 1, null, true);
+      character.associates.push({ kind: "contact", description: "Alien contact from life event" });
+    } else if (/Psionics|Psionic/i.test(text)) {
+      character.pending_life_event_choice = { kind: "psionic_institute", options: ["test_psi", "ignore"], prompt: text };
+      character.auto_qualify_career_ids.push("psion");
+    } else if (/Alien Artefact|Ancient Technology/i.test(text)) {
+      character.equipment.push({ name: /Ancient Technology/i.test(text) ? "Ancient Technology" : "Alien Artefact", quantity: 1, notes: "Life event" });
+    } else if (/Contact with Government|Contact with Clan Leaders/i.test(text)) {
+      character.associates.push({ kind: "contact", description: "High-level contact from life event" });
+    } else if (aslan && /Territory Challenge/i.test(title)) {
+      character.pending_life_event_choice = { kind: "aslan_territory_challenge", options: ["increase", "decrease"], prompt: text };
+    } else if (aslan && /Clan Event/i.test(title)) {
+      this.applyAslanClanEvent(character);
+    } else if (aslan && /Duel/i.test(title)) {
+      character.pending_life_event_choice = { kind: "aslan_duel", options: ["accept", "refuse"], prompt: text };
+    }
+  }
+
+  private applyAslanClanEvent(character: TravellerCharacter): void {
+    const table = this.rules.table<any>("aslan_life_events").clan_events?.results ?? {};
+    const roll = this.roller.rollD(6);
+    const text = String(table[String(roll.total)] ?? "");
+    if (/extra Benefit roll/i.test(text)) character.pending_benefit_rolls += 1;
+    if (/DM\+2 to your next advancement/i.test(text)) character.dm_next_advancement += 2;
+    if (/SOC \+1/i.test(text)) setCharacteristic(character, "SOC", getCharacteristic(character, "SOC") + 1);
+    if (/Ally/i.test(text)) character.associates.push({ kind: "ally", description: "Ally from clan event" });
+    if (/Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: "Enemy family from clan event" });
+    if (/DM-2 to survival/i.test(text)) character.dm_next_survival -= 2;
+    if (/lose one Benefit roll|no Benefit rolls/i.test(text)) {
+      if (character.current_term) character.current_term.benefit_forfeited = true;
+    }
+    if (/DM-4 to advancement/i.test(text)) character.dm_next_advancement -= 4;
+    character.notes.push(`Aslan clan event: ${text}`);
+  }
+
+  private isAslanLifeEventCharacter(character: TravellerCharacter): boolean {
+    return character.species_id.includes("aslan") && character.current_term?.career_id !== "aslan_outcast";
   }
 
   private applyPreCareerEventEffects(character: TravellerCharacter, rollTotal: number, text: string, aslan: boolean): void {

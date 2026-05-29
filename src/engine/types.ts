@@ -105,6 +105,7 @@ export interface TravellerCharacter {
   dm_next_benefit: number;
   dm_next_survival: number;
   dm_next_events: number;
+  good_fortune_benefit_dm: number;
   failed_qualifications_this_term: number;
   pending_life_event_choice?: Record<string, unknown> | null;
   pending_injury_choice?: Record<string, unknown> | null;
@@ -125,6 +126,8 @@ export interface TravellerCharacter {
   permanent_qualification_dm_by_career: Record<string, number>;
   banned_career_ids: string[];
   forced_next_career_id?: string | null;
+  pending_transfer_career_id?: string | null;
+  pending_transfer_rank?: number | null;
   gender?: string | null;
   clan_shares: number;
   aslan_setup_status?: Record<string, unknown> | null;

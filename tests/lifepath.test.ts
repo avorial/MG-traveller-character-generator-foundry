@@ -181,4 +181,30 @@ describe("TravellerLifepathEngine", () => {
     expect(character.medical_debt).toBe(0);
     expect(character.credits).toBe(8000);
   });
+
+  it("applies core life event results", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([10]));
+    let character = engine.freshCharacter();
+    character = engine.lifeEventRoll(character).character;
+    expect(character.dm_next_benefit).toBe(2);
+    expect(character.good_fortune_benefit_dm).toBe(2);
+  });
+
+  it("leaves ambiguous life events as resolvable choices", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([4]));
+    let character = engine.freshCharacter();
+    character = engine.lifeEventRoll(character).character;
+    expect(character.pending_life_event_choice?.kind).toBe("relationship_end");
+    character = engine.resolveLifeEventChoice(character, "enemy").character;
+    expect(character.associates.at(-1)?.kind).toBe("enemy");
+  });
+
+  it("rolls a life event from career event 7", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([7, 9]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.startTerm(character, "scout", "courier").character;
+    character = engine.eventRoll(character).character;
+    expect(character.dm_next_qualification).toBe(2);
+  });
 });
