@@ -56,7 +56,6 @@
           {{#each societies as |society|}}
             <button type="button" data-action="chooseSociety" data-id="{{society.id}}">
               <strong>{{society.name}}</strong>
-              <span>{{society.description}}</span>
             </button>
           {{/each}}
         </div>
@@ -68,7 +67,6 @@
           {{#each species as |sp|}}
             <button type="button" data-action="applySpecies" data-id="{{sp.id}}">
               <strong>{{sp.name}}</strong>
-              <span>{{sp.description}}</span>
             </button>
           {{/each}}
         </div>
@@ -81,7 +79,6 @@
           {{#each backgroundPackages as |pkg|}}
             <button type="button" data-action="applyBackgroundPackage" data-id="{{pkg.id}}">
               <strong>{{pkg.name}}</strong>
-              <span>{{pkg.description}}</span>
             </button>
           {{/each}}
         </div>
@@ -99,7 +96,6 @@
           {{#each careerPackages as |pkg|}}
             <button type="button" data-action="applyCareerPackage" data-id="{{pkg.id}}">
               <strong>{{pkg.name}}</strong>
-              <span>{{pkg.description}}</span>
             </button>
           {{/each}}
         </div>
@@ -111,7 +107,6 @@
           {{#each skillPackages as |pkg|}}
             <button type="button" data-action="applySkillPackage" data-id="{{pkg.id}}">
               <strong>{{pkg.name}}</strong>
-              <span>{{pkg.description}}</span>
             </button>
           {{/each}}
         </div>
