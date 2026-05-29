@@ -163,4 +163,104 @@ export interface RuleBundle {
   species: Record<string, any>;
   careers: Record<string, any>;
   tables: Record<string, any>;
+  catalog: RulesCatalog;
+}
+
+export interface RulesCatalog {
+  source: {
+    repository: string;
+    version: string;
+  };
+  generatedAt: string;
+  counts: Record<string, number>;
+  societies: CatalogSociety[];
+  species: CatalogSpecies[];
+  speciesBySociety: Record<string, CatalogSpecies[]>;
+  careers: CatalogCareer[];
+  careersBySociety: Record<string, Pick<CatalogCareer, "id" | "name">[]>;
+  packages: {
+    background: CatalogPackage[];
+    career: CatalogPackage[];
+    skill: CatalogPackage[];
+  };
+  skills: {
+    core: string[];
+    speciality: Record<string, string[]>;
+    background: string[];
+  };
+  education: CatalogEducationTrack[];
+  tables: Record<string, unknown>;
+}
+
+export interface CatalogSociety {
+  id: string;
+  name: string;
+  subtitle: string;
+  speciesIds: string[];
+}
+
+export interface CatalogSpecies {
+  id: string;
+  name: string;
+  societies: string[];
+  aliases: string[];
+  source: string;
+  characteristicModifiers: Record<string, number>;
+  requiredExtraCharacteristics: string[];
+  forbiddenSkills: string[];
+  allowedSpeciesCareers: string[];
+  blockedCareers: string[];
+  traits: string[];
+  sortOrder: number;
+}
+
+export interface CatalogCareer {
+  id: string;
+  name: string;
+  source: string;
+  societies: string[];
+  qualification: unknown;
+  assignments: CatalogAssignment[];
+  assignmentCount: number;
+  skillTables: CatalogSkillTable[];
+  skillTableCount: number;
+  rankTracks: string[];
+  eventResults: number[];
+  mishapResults: number[];
+  musteringOut: string[];
+}
+
+export interface CatalogAssignment {
+  id: string;
+  name: string;
+  survival: unknown;
+  advancement: unknown;
+}
+
+export interface CatalogSkillTable {
+  id: string;
+  name: string;
+  assignmentOnly: string | null;
+  requiresEdu: number | null;
+  results: number;
+}
+
+export interface CatalogPackage {
+  id: string;
+  name: string;
+  statMods: Record<string, number>;
+  skillCount: number;
+  credits: number;
+  equipmentCount: number;
+  rank: number | null;
+  rankTitle: string | null;
+}
+
+export interface CatalogEducationTrack {
+  id: string;
+  name: string;
+  ageCost: number;
+  maxAge: number | null;
+  services: string[];
+  skillCount: number;
 }

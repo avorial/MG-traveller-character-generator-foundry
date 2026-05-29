@@ -48,11 +48,8 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       stats: Object.entries(this.character.characteristics),
       extraStats: Object.entries(this.character.extra_characteristics),
       notes: [...this.character.notes].reverse().slice(0, 12),
-      societies: Object.entries(rules.table<any>("societies").societies ?? rules.table<any>("societies")).map(([id, society]: [string, any]) => ({ id, ...society })),
-      species: rules.speciesList().filter((species: any) => {
-        const societies = species.societies as string[] | undefined;
-        return !societies || societies.includes(this.character.society_id);
-      }),
+      societies: rules.catalog.societies,
+      species: rules.speciesForSociety(this.character.society_id),
       backgroundPackages: Object.values(rules.table<any>("background_packages").packages ?? {}),
       careerPackages: Object.values(rules.table<any>("career_packages").packages ?? {}),
       skillPackages: Object.entries(rules.table<any>("skill_packages").packages ?? {}).map(([id, pkg]: [string, any]) => ({ id, ...pkg })),

@@ -7,7 +7,8 @@ export function loadTestRules(): RulesIndex {
   const species = loadDir(root, "species");
   const careers = loadDir(root, "careers");
   const tables = Object.fromEntries(TABLE_FILES.map((name) => [name, readJson(path.join(root, "tables", `${name}.json`))]));
-  return new RulesIndex({ species, careers, tables });
+  const catalog = readJson(path.join(root, "catalog.json"));
+  return new RulesIndex({ species, careers, tables, catalog: catalog as any });
 }
 
 function loadDir(root: string, dir: string): Record<string, any> {

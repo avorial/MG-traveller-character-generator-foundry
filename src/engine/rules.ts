@@ -1,4 +1,4 @@
-import type { RuleBundle } from "./types";
+import type { RuleBundle, RulesCatalog } from "./types";
 
 export const TABLE_FILES = [
   "aging",
@@ -29,6 +29,10 @@ export const TABLE_FILES = [
 export class RulesIndex {
   constructor(readonly bundle: RuleBundle) {}
 
+  get catalog(): RulesCatalog {
+    return this.bundle.catalog;
+  }
+
   species(id: string): any | undefined {
     return this.bundle.species[id];
   }
@@ -48,16 +52,30 @@ export class RulesIndex {
   table<T = any>(id: string): T {
     return this.bundle.tables[id] as T;
   }
+
+  speciesForSociety(societyId: string): any[] {
+    const ids = new Set(this.catalog.speciesBySociety[societyId]?.map((entry) => entry.id) ?? []);
+    return this.speciesList().filter((species) => ids.has(species.id));
+  }
+
+  careersForSociety(societyId: string): any[] {
+    const ids = new Set([
+      ...(this.catalog.careersBySociety.any ?? []).map((entry) => entry.id),
+      ...(this.catalog.careersBySociety[societyId] ?? []).map((entry) => entry.id)
+    ]);
+    return this.careerList().filter((career) => ids.has(career.id));
+  }
 }
 
 export async function loadRules(baseUrl: string): Promise<RulesIndex> {
   const normalized = baseUrl.replace(/\/$/, "");
-  const [species, careers, tables] = await Promise.all([
+  const [species, careers, tables, catalog] = await Promise.all([
     loadDirectory(`${normalized}/species/index.json`, `${normalized}/species`),
     loadDirectory(`${normalized}/careers/index.json`, `${normalized}/careers`),
-    loadTables(normalized)
+    loadTables(normalized),
+    fetchJson(`${normalized}/catalog.json`) as Promise<RulesCatalog>
   ]);
-  return new RulesIndex({ species, careers, tables });
+  return new RulesIndex({ species, careers, tables, catalog });
 }
 
 async function loadTables(baseUrl: string): Promise<Record<string, any>> {
@@ -84,4 +102,3 @@ async function fetchJson(url: string): Promise<unknown> {
   if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
   return response.json();
 }
-

@@ -1,4 +1,4 @@
-const $ = ["STR", "DEX", "END", "INT", "EDU", "SOC"], O = [
+const D = ["STR", "DEX", "END", "INT", "EDU", "SOC"], O = [
   "STR",
   "DEX",
   "END",
@@ -109,14 +109,14 @@ function d(a, e, t = 0, r = null, i = !1) {
     return `Skipped ${m(e, r)} (forbidden by species)`;
   const s = a.skills.find((n) => n.name === e && (n.speciality ?? null) === r);
   if (s)
-    return t === 0 ? `Already has ${m(e, r)} ${s.level}` : i ? t > s.level ? (s.level = Math.min(t, 4), v(a.skills), `Increased ${m(e, r)} to ${s.level}`) : `${m(e, r)} unchanged (already ${s.level})` : (s.level = Math.min(s.level + t, 4), v(a.skills), `Increased ${m(e, r)} to ${s.level}`);
+    return t === 0 ? `Already has ${m(e, r)} ${s.level}` : i ? t > s.level ? (s.level = Math.min(t, 4), b(a.skills), `Increased ${m(e, r)} to ${s.level}`) : `${m(e, r)} unchanged (already ${s.level})` : (s.level = Math.min(s.level + t, 4), b(a.skills), `Increased ${m(e, r)} to ${s.level}`);
   const c = Math.max(0, t);
-  return a.skills.push({ name: e, level: c, speciality: r }), r && c >= 1 && !a.skills.some((n) => n.name === e && !n.speciality) && a.skills.push({ name: e, level: 0, speciality: null }), v(a.skills), `Gained ${m(e, r)} ${c}`;
+  return a.skills.push({ name: e, level: c, speciality: r }), r && c >= 1 && !a.skills.some((n) => n.name === e && !n.speciality) && a.skills.push({ name: e, level: 0, speciality: null }), b(a.skills), `Gained ${m(e, r)} ${c}`;
 }
 function m(a, e) {
   return `${a}${e ? ` (${e})` : ""}`;
 }
-function v(a) {
+function b(a) {
   a.sort((e, t) => `${e.name.toLowerCase()}\0${e.speciality ?? ""}`.localeCompare(`${t.name.toLowerCase()}\0${t.speciality ?? ""}`));
 }
 class N {
@@ -166,10 +166,10 @@ class R {
   rollInitialCharacteristics(e, t = !1) {
     const r = u(e), i = {}, s = /* @__PURE__ */ new Set();
     if (t) {
-      const c = $.map((n) => ({ stat: n, roll: this.roller.roll2D() }));
+      const c = D.map((n) => ({ stat: n, roll: this.roller.roll2D() }));
       c.sort((n, o) => o.roll.total - n.roll.total), s.add(c[0].stat), s.add(c[1].stat);
     }
-    for (const c of $) {
+    for (const c of D) {
       const n = this.roller.rollCharacteristic(t && s.has(c));
       r.characteristics[c] = n.total, i[c] = n;
     }
@@ -206,7 +206,7 @@ class R {
   applyBackgroundSkills(e, t) {
     const r = u(e), i = Math.max(0, 3 + j(r.characteristics.EDU));
     for (const s of t.slice(0, i)) {
-      const [c, n] = b(s);
+      const [c, n] = S(s);
       d(r, c, 0, n);
     }
     return r.phase = "pre_career", r.notes.push(`Chose ${Math.min(t.length, i)} background skills.`), { allowed: i, chosen: t.slice(0, i), character: r };
@@ -220,8 +220,8 @@ class R {
     for (const n of s.skills ?? []) {
       const o = typeof n == "string" ? n : `${n.name}${n.speciality ? ` (${n.speciality})` : ""}`, l = r[o] ?? n;
       if (typeof l == "string") {
-        const [k, T, D] = x(l);
-        d(c, k, D === 1 && !/\d+$/.test(l.trim()) ? 0 : D, T);
+        const [v, T, $] = x(l);
+        d(c, v, $ === 1 && !/\d+$/.test(l.trim()) ? 0 : $, T);
       } else
         d(c, l.name, Number(l.level ?? 0), l.speciality ?? null);
     }
@@ -237,8 +237,8 @@ class R {
       h(c, n, g(c, n) + Number(o));
     for (const n of s.skills ?? [])
       if (typeof n == "string") {
-        const [o, l, k] = x(n);
-        d(c, o, k, l);
+        const [o, l, v] = x(n);
+        d(c, o, v, l);
       } else
         d(c, n.name, Number(n.level ?? 0), n.speciality ?? null, !0);
     c.credits += Number(s.credits ?? 0);
@@ -262,7 +262,7 @@ class R {
     if (!i) throw new Error(`Unknown skill package: ${t}`);
     const s = u(e);
     for (const c of i.skills ?? []) {
-      const [n, o] = b(c);
+      const [n, o] = S(c);
       d(s, n, 1, o);
     }
     return s.phase = "done", s.notes.push(`Applied skill package: ${i.name ?? t}.`), { package: i, character: s };
@@ -308,12 +308,12 @@ class R {
     return e.name = "Generated Traveller", e = this.rollInitialCharacteristics(e).character, e = this.chooseSociety(e, "third_imperium").character, e = this.applySpecies(e, "imperial_human").character, e = this.applyBackgroundSkills(e, ["Admin", "Streetwise", "Vacc Suit"]).character, e = this.applyCareerPackage(e, "scout").character, e.phase = "done", { character: e };
   }
 }
-function b(a) {
+function S(a) {
   const e = a.match(/^(.+?)\s*\((.+)\)\s*$/);
   return e ? [e[1].trim(), e[2].trim()] : [a.trim(), null];
 }
 function x(a) {
-  const e = a.trim(), t = e.match(/\s+(\d+)$/), r = t ? Number(t[1]) : 1, i = t ? e.slice(0, t.index).trim() : e, [s, c] = b(i);
+  const e = a.trim(), t = e.match(/\s+(\d+)$/), r = t ? Number(t[1]) : 1, i = t ? e.slice(0, t.index).trim() : e, [s, c] = S(i);
   return [s, c, r];
 }
 const L = [
@@ -345,6 +345,9 @@ class P {
   constructor(e) {
     this.bundle = e;
   }
+  get catalog() {
+    return this.bundle.catalog;
+  }
   species(e) {
     return this.bundle.species[e];
   }
@@ -360,29 +363,42 @@ class P {
   table(e) {
     return this.bundle.tables[e];
   }
+  speciesForSociety(e) {
+    var r;
+    const t = new Set(((r = this.catalog.speciesBySociety[e]) == null ? void 0 : r.map((i) => i.id)) ?? []);
+    return this.speciesList().filter((i) => t.has(i.id));
+  }
+  careersForSociety(e) {
+    const t = /* @__PURE__ */ new Set([
+      ...(this.catalog.careersBySociety.any ?? []).map((r) => r.id),
+      ...(this.catalog.careersBySociety[e] ?? []).map((r) => r.id)
+    ]);
+    return this.careerList().filter((r) => t.has(r.id));
+  }
 }
 async function M(a) {
-  const e = a.replace(/\/$/, ""), [t, r, i] = await Promise.all([
+  const e = a.replace(/\/$/, ""), [t, r, i, s] = await Promise.all([
     A(`${e}/species/index.json`, `${e}/species`),
     A(`${e}/careers/index.json`, `${e}/careers`),
-    U(e)
+    U(e),
+    k(`${e}/catalog.json`)
   ]);
-  return new P({ species: t, careers: r, tables: i });
+  return new P({ species: t, careers: r, tables: i, catalog: s });
 }
 async function U(a) {
-  const e = await Promise.all(L.map(async (t) => [t, await w(`${a}/tables/${t}.json`)]));
+  const e = await Promise.all(L.map(async (t) => [t, await k(`${a}/tables/${t}.json`)]));
   return Object.fromEntries(e);
 }
 async function A(a, e) {
-  const t = await w(a), r = [];
+  const t = await k(a), r = [];
   for (const i of t) {
-    const s = await w(`${e}/${i}`), c = Array.isArray(s) ? s : [s];
+    const s = await k(`${e}/${i}`), c = Array.isArray(s) ? s : [s];
     for (const n of c)
       n != null && n.deprecated || n != null && n.id && r.push([n.id, n]);
   }
   return Object.fromEntries(r);
 }
-async function w(a) {
+async function k(a) {
   const e = await fetch(a);
   if (!e.ok) throw new Error(`Failed to load ${a}: ${e.status} ${e.statusText}`);
   return e.json();
@@ -536,14 +552,14 @@ const q = {
   military: "military",
   naval: "naval"
 };
-function z(a) {
-  return q[S(a)];
-}
 function B(a) {
-  if (a)
-    return I[S(a)] ?? S(a).replace(/[^a-z0-9]/g, "");
+  return q[w(a)];
 }
-function S(a) {
+function z(a) {
+  if (a)
+    return I[w(a)] ?? w(a).replace(/[^a-z0-9]/g, "");
+}
+function w(a) {
   return a.trim().toLowerCase();
 }
 function H(a, e = {}) {
@@ -551,8 +567,8 @@ function H(a, e = {}) {
     const l = o === "PSI" && a.psi || g(a, o);
     return [o, { value: l, current: l, show: G(o, l), default: !1 }];
   })), s = a.characteristics.STR + a.characteristics.DEX + a.characteristics.END, c = [
-    ...Y(a),
     ...F(a),
+    ...Y(a),
     ...X(a)
   ], n = a.name || "Unnamed Traveller";
   return {
@@ -635,12 +651,12 @@ function H(a, e = {}) {
 function V(a) {
   const e = {};
   for (const t of a.skills) {
-    const r = z(t.name);
+    const r = B(t.name);
     if (r)
       if (e[r] ?? (e[r] = { base: -1, specs: {} }), !t.speciality || t.speciality.toLowerCase() === "any")
         e[r].base = Math.max(e[r].base, t.level);
       else {
-        const i = B(t.speciality);
+        const i = z(t.speciality);
         i && (e[r].specs[i] = Math.max(e[r].specs[i] ?? -1, t.level));
       }
   }
@@ -649,7 +665,7 @@ function V(a) {
     return Object.keys(r.specs).length && (i.specialities = Object.fromEntries(Object.entries(r.specs).map(([s, c]) => [s, { id: s, value: String(c) }]))), [t, i];
   }));
 }
-function Y(a) {
+function F(a) {
   const e = {
     ally: { affinity: 3, enmity: 0, power: 2, influence: 2 },
     contact: { affinity: 3, enmity: 0, power: 0, influence: 4 },
@@ -665,7 +681,7 @@ function Y(a) {
     });
   });
 }
-function F(a) {
+function Y(a) {
   return a.term_history.map((e, t) => {
     const r = f(e.career_id.replaceAll("_", " ")), i = f(e.assignment_id.replaceAll("_", " ")), s = `${r}${i ? `: ${i}` : ""}${e.rank_title ? ` (${e.rank_title})` : ""}`, c = [s, ...e.events.map((n) => `* ${n}`)].join(`
 `);
@@ -804,11 +820,8 @@ const { ApplicationV2: te, HandlebarsApplicationMixin: re } = foundry.applicatio
       stats: Object.entries(this.character.characteristics),
       extraStats: Object.entries(this.character.extra_characteristics),
       notes: [...this.character.notes].reverse().slice(0, 12),
-      societies: Object.entries(e.table("societies").societies ?? e.table("societies")).map(([t, r]) => ({ id: t, ...r })),
-      species: e.speciesList().filter((t) => {
-        const r = t.societies;
-        return !r || r.includes(this.character.society_id);
-      }),
+      societies: e.catalog.societies,
+      species: e.speciesForSociety(this.character.society_id),
       backgroundPackages: Object.values(e.table("background_packages").packages ?? {}),
       careerPackages: Object.values(e.table("career_packages").packages ?? {}),
       skillPackages: Object.entries(e.table("skill_packages").packages ?? {}).map(([t, r]) => ({ id: t, ...r })),

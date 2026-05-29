@@ -23,6 +23,7 @@ const versionFile = path.join(source, "VERSION");
 if (existsSync(versionFile)) await cp(versionFile, path.resolve("public", "SOURCE_VERSION"), { force: true });
 
 await writeIndexes(dest);
+await import("./generate-catalog.mjs");
 console.log(`Synced Traveller generator data into ${dest}`);
 
 async function writeIndexes(base) {
