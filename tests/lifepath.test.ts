@@ -207,4 +207,34 @@ describe("TravellerLifepathEngine", () => {
     character = engine.eventRoll(character).character;
     expect(character.dm_next_qualification).toBe(2);
   });
+
+  it("consumes transfer offers as automatic qualification", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.pending_transfer_career_id = "marine";
+    character = engine.qualifyForCareer(character, "marine").character;
+    expect(character.failed_qualifications_this_term).toBe(0);
+    expect(character.pending_transfer_career_id).toBeNull();
+  });
+
+  it("honors no-eject mishap careers", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([5, 5]));
+    let character = engine.freshCharacter();
+    character = engine.startTerm(character, "bounty_hunter", "hunter").character;
+    character = engine.mishapRoll(character).character;
+    expect(character.current_term?.survived).toBe(true);
+    expect(character.force_career_end).toBe(false);
+    expect(character.pending_injury_choice?.title).toBe("Injured");
+  });
+
+  it("applies Frozen Watch mishap flags", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([2]));
+    let character = engine.freshCharacter();
+    character.age = 22;
+    character = engine.startTerm(character, "confederation_navy", "line_crew").character;
+    character = engine.mishapRoll(character).character;
+    expect(character.current_term?.frozen_watch).toBe(true);
+    expect(character.current_term?.survived).toBe(true);
+    expect(character.age).toBe(18);
+  });
 });

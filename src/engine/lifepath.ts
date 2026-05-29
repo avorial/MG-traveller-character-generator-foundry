@@ -299,7 +299,8 @@ export class TravellerLifepathEngine {
       next.notes.push(`Cannot qualify for ${career.name ?? careerId}: ${blockedReason}.`);
       return { career, qualified: false, blockedReason, character: next };
     }
-    const automatic = next.auto_entry_career_id === careerId || next.auto_qualify_career_ids.includes(careerId);
+    const transferAuto = next.pending_transfer_career_id === "any" || next.pending_transfer_career_id === careerId;
+    const automatic = transferAuto || next.auto_entry_career_id === careerId || next.auto_qualify_career_ids.includes(careerId);
     const dm = this.checkDm(next, career.qualification ?? {})
       + next.dm_next_qualification
       + Number(next.permanent_qualification_dm_by_career[careerId] ?? 0)
@@ -309,6 +310,8 @@ export class TravellerLifepathEngine {
     next.dm_next_qualification = 0;
     if (qualified) {
       next.failed_qualifications_this_term = 0;
+      if (transferAuto) next.pending_transfer_career_id = null;
+      next.auto_qualify_career_ids = next.auto_qualify_career_ids.filter((id) => id !== careerId);
       next.notes.push(`Qualified for ${career.name ?? careerId}.`);
     } else {
       next.failed_qualifications_this_term += 1;
@@ -320,13 +323,14 @@ export class TravellerLifepathEngine {
   startTerm(character: TravellerCharacter, careerId: string, assignmentId?: string): EngineResult {
     const career = this.rules.career(careerId);
     if (!career) throw new Error(`Unknown career: ${careerId}`);
-    const assignments = Object.keys(career.assignments ?? {});
+    const assignments = this.assignmentIds(career);
     const resolvedAssignment = assignmentId ?? assignments[0];
-    if (!career.assignments?.[resolvedAssignment]) throw new Error(`Unknown assignment ${resolvedAssignment} for ${careerId}`);
+    if (!this.assignmentData(career, resolvedAssignment)) throw new Error(`Unknown assignment ${resolvedAssignment} for ${careerId}`);
     const next = cloneCharacter(character);
     const careerTerms = next.term_history.filter((term) => term.career_id === careerId).length;
     const commissioned = Boolean(career.all_commissioned) || next.starts_commissioned_career_id === careerId || Boolean(next.completed_careers.find((record) => record.career_id === careerId && record.commissioned));
-    const rank = commissioned ? Number(next.starts_commissioned_rank ?? 1) : 0;
+    const transferRank = next.pending_transfer_career_id === careerId || next.pending_transfer_career_id === "any" ? next.pending_transfer_rank : null;
+    const rank = transferRank != null ? Number(transferRank) : commissioned ? Number(next.starts_commissioned_rank ?? 1) : 0;
     const term: CareerTerm = {
       career_id: careerId,
       assignment_id: resolvedAssignment,
@@ -348,6 +352,8 @@ export class TravellerLifepathEngine {
       frozen_watch: false
     };
     next.current_term = term;
+    next.pending_transfer_career_id = null;
+    next.pending_transfer_rank = null;
     if (term.basic_training) {
       for (const result of Object.values(career.skill_tables?.service_skills ?? {}).filter((value) => typeof value === "string") as string[]) {
         const note = this.applySkillOrStat(next, result, 0);
@@ -383,7 +389,7 @@ export class TravellerLifepathEngine {
       next.notes.push(`${career.name ?? term.career_id} has no survival roll.`);
       return { career, roll: null, survived: true, character: next };
     }
-    const assignment = career.assignments[term.assignment_id];
+    const assignment = this.assignmentData(career, term.assignment_id);
     const check = career.survival ?? assignment.survival ?? {};
     const dm = this.checkDm(next, check) + next.dm_next_survival;
     const roll = this.roller.roll2D(dm);
@@ -404,6 +410,7 @@ export class TravellerLifepathEngine {
     const text = String(career.events?.[String(Math.max(2, Math.min(12, roll.total)))] ?? "No event.");
     term.events.push(text);
     this.applyInlineEventEffects(next, term, text);
+    this.applyCareerTextEffects(next, term, text, false);
     let lifeEvent: unknown = null;
     if (/Life Event|Life event|Life Events Table/i.test(text)) {
       const result = this.lifeEventRoll(next, this.isAslanLifeEventCharacter(next));
@@ -473,10 +480,12 @@ export class TravellerLifepathEngine {
     const roll = this.roller.rollD(6);
     const text = String(career.mishaps?.[String(Math.max(1, Math.min(6, roll.total)))] ?? "Mishap.");
     term.mishap = text;
-    term.survived = false;
+    const noEject = Boolean(career.mishap_no_eject) || /not ejected|not have to leave|stay (?:in|on) (?:this )?career|remain in (?:the|this) career/i.test(text);
+    term.survived = noEject ? true : false;
     term.events.push(text);
     this.applyInlineEventEffects(next, term, text);
-    next.force_career_end = true;
+    this.applyCareerTextEffects(next, term, text, true);
+    next.force_career_end = !noEject;
     next.notes.push(`Career mishap: ${text}`);
     return { career, roll, mishap: text, character: next };
   }
@@ -485,7 +494,7 @@ export class TravellerLifepathEngine {
     const next = cloneCharacter(character);
     const term = this.requireCurrentTerm(next);
     const career = this.rules.career(term.career_id);
-    const assignment = career.assignments[term.assignment_id];
+    const assignment = this.assignmentData(career, term.assignment_id);
     const check = career.advancement ?? assignment.advancement ?? {};
     const dm = this.checkDm(next, check)
       + next.dm_next_advancement
@@ -779,6 +788,23 @@ export class TravellerLifepathEngine {
     return character.current_term;
   }
 
+  private assignmentIds(career: any): string[] {
+    if (Array.isArray(career.assignments)) return career.assignments.map((assignment: any) => String(assignment.id));
+    return Object.keys(career.assignments ?? {});
+  }
+
+  private assignmentData(career: any, assignmentId: string): any {
+    if (Array.isArray(career.assignments)) {
+      const base = career.assignments.find((assignment: any) => assignment.id === assignmentId) ?? null;
+      return {
+        ...(base ?? {}),
+        survival: career.survival?.[assignmentId] ?? base?.survival,
+        advancement: career.advancement?.[assignmentId] ?? base?.advancement
+      };
+    }
+    return career.assignments?.[assignmentId] ?? null;
+  }
+
   private rankTrack(career: any, commissioned: boolean): any {
     if (commissioned && career.ranks?.officer) return career.ranks.officer;
     if (!commissioned && career.ranks?.enlisted) return career.ranks.enlisted;
@@ -857,6 +883,52 @@ export class TravellerLifepathEngine {
     if (/transfer to any other non-military career|transfer to any other career|transfer to any career/i.test(text)) character.pending_transfer_career_id = "any";
     if (/you are ejected from this career|losing your place|forced out of the career/i.test(text)) character.ejected_by_event = true;
     if (/lose (?:one|1) Benefit roll|Lose one benefit roll|Lose one Benefit roll/i.test(text)) term.benefit_forfeited = true;
+  }
+
+  private applyCareerTextEffects(character: TravellerCharacter, term: NonNullable<TravellerCharacter["current_term"]>, text: string, mishap: boolean): void {
+    if (/Frozen Watch|cold sleep|cryoberth/i.test(text)) {
+      term.frozen_watch = true;
+      character.age = Math.max(0, character.age - 4);
+      term.advanced = false;
+      term.skills_gained.push("Frozen Watch: no skill or advancement roll this term");
+    }
+    if (/Severely injured|seriously injured|Injured|suffer injuries|Injury Table|Injury table|injure you/i.test(text)) {
+      const fixed = /result of 2|roll of 2/i.test(text) ? 2 : undefined;
+      const injury = this.applyInjury(character, fixed);
+      Object.assign(character, injury.character);
+    }
+    const directStatDrops = [...text.matchAll(/\b(STR|DEX|END|INT|EDU|SOC|PSI|CHA|TER|RES|REP)\s*(?:−|-)\s*(\d+)/gi)];
+    for (const match of directStatDrops) {
+      const key = match[1].toUpperCase() as CharacteristicKey;
+      const amount = Number(match[2]);
+      if (key === "REP") character.reputation = Math.max(0, character.reputation - amount);
+      else if (key === "RES") setCharacteristic(character, "SOC", getCharacteristic(character, "SOC") - amount);
+      else setCharacteristic(character, key, getCharacteristic(character, key) - amount);
+    }
+    const choiceDrop = text.match(/Reduce (?:your )?(STR|DEX|END|INT|EDU|SOC|PSI|CHA|TER|RES|REP)(?: or (STR|DEX|END|INT|EDU|SOC|PSI|CHA|TER|RES|REP))? by (\d+)/i);
+    if (choiceDrop) {
+      character.pending_career_mishap_choice = {
+        kind: "stat_choice",
+        choices: [choiceDrop[1], choiceDrop[2]].filter(Boolean),
+        amount: Number(choiceDrop[3]),
+        prompt: text
+      };
+    }
+    const rankDrop = text.match(/rank (?:is )?reduced by (?:−|-)(\d+)|lose one level of rank|demoted one Rank/i);
+    if (rankDrop) {
+      const amount = rankDrop[1] ? Number(rankDrop[1]) : 1;
+      term.rank = Math.max(0, term.rank - amount);
+      const career = this.rules.career(term.career_id);
+      term.rank_title = this.rankTitle(career, term.commissioned, term.rank);
+      if (term.rank === 0 && /below zero|takes it below zero/i.test(text)) character.force_career_end = true;
+    }
+    if (/lose (?:all|any) Benefit rolls|no Benefit rolls/i.test(text)) term.benefit_forfeited = true;
+    if (/must take (?:the )?Prisoner/i.test(text)) character.forced_next_career_id = "prisoner";
+    if (/may not re-enlist|may not re-enter/i.test(text)) character.banned_career_ids.push(term.career_id);
+    if (mishap && /gain (?:D3|1D|D6) Contacts/i.test(text)) {
+      const count = /D3/i.test(text) ? this.roller.d3() : this.roller.d6();
+      for (let i = 0; i < count; i++) character.associates.push({ kind: "contact", description: `Contact from ${term.career_id} mishap` });
+    }
   }
 
   private applyLifeEventEffects(character: TravellerCharacter, title: string, text: string, aslan: boolean): void {
