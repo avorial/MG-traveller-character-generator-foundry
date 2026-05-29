@@ -139,4 +139,46 @@ describe("TravellerLifepathEngine", () => {
     character = engine.musterOutRoll(character, "hiver_academic", "benefit").character;
     expect(character.pending_benefit_rolls).toBe(1);
   });
+
+  it("applies richer mustering benefit strings", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([5, 5]));
+    let character = engine.freshCharacter();
+    character.completed_careers.push({
+      career_id: "navy",
+      assignment_id: "line_crew",
+      terms_served: 1,
+      final_rank: 0,
+      final_rank_title: null,
+      commissioned: false,
+      left_due_to: "voluntary",
+      benefit_rolls_used: 0,
+      benefit_rolls_earned: 2
+    });
+    character.pending_benefit_rolls = 2;
+    character = engine.musterOutRoll(character, "navy", "benefit").character;
+    expect(character.tas_member).toBe(true);
+    character = engine.musterOutRoll(character, "navy", "benefit").character;
+    expect(character.ship_shares).toBe(2);
+  });
+
+  it("uses cash benefits to pay medical debt before credits", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([1]));
+    let character = engine.freshCharacter();
+    character.medical_debt = 12000;
+    character.completed_careers.push({
+      career_id: "scout",
+      assignment_id: "courier",
+      terms_served: 1,
+      final_rank: 0,
+      final_rank_title: null,
+      commissioned: false,
+      left_due_to: "voluntary",
+      benefit_rolls_used: 0,
+      benefit_rolls_earned: 1
+    });
+    character.pending_benefit_rolls = 1;
+    character = engine.musterOutRoll(character, "scout", "cash").character;
+    expect(character.medical_debt).toBe(0);
+    expect(character.credits).toBe(8000);
+  });
 });

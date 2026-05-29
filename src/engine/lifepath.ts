@@ -535,7 +535,14 @@ export class TravellerLifepathEngine {
     const resolvedColumn = column === "cash" && next.cash_rolls_used < 3 && entry.cash != null ? "cash" : "benefit";
     const result = entry[resolvedColumn];
     if (resolvedColumn === "cash") {
-      next.credits += Number(result ?? 0);
+      const cash = Number(result ?? 0);
+      if (cash < 0) {
+        next.medical_debt = Math.max(0, next.medical_debt + cash);
+      } else {
+        const debtPaid = Math.min(next.medical_debt, cash);
+        next.medical_debt -= debtPaid;
+        next.credits += cash - debtPaid;
+      }
       next.cash_rolls_used += 1;
     } else {
       this.applyMusterBenefit(next, String(result ?? "Benefit"));
@@ -826,18 +833,70 @@ export class TravellerLifepathEngine {
   }
 
   private applyMusterBenefit(character: TravellerCharacter, result: string): void {
-    if (/TAS Membership/i.test(result)) character.tas_member = true;
-    else if (/Ship Share/i.test(result)) character.ship_shares += 1;
-    else if (/Scout Ship/i.test(result)) character.equipment.push({ name: "Scout Ship", quantity: 1, notes: "Mustering-out benefit" });
-    else if (/Weapon/i.test(result)) character.equipment.push({ name: "Weapon", quantity: 1, notes: "Mustering-out benefit" });
-    else if (/Armou?r/i.test(result)) character.equipment.push({ name: "Armour", quantity: 1, notes: "Mustering-out benefit" });
-    else if (/Blade/i.test(result)) character.equipment.push({ name: "Blade", quantity: 1, notes: "Mustering-out benefit" });
-    else if (/Gun/i.test(result)) character.equipment.push({ name: "Gun", quantity: 1, notes: "Mustering-out benefit" });
-    else if (/Ship's Boat/i.test(result)) character.equipment.push({ name: "Ship's Boat", quantity: 1, notes: "Mustering-out benefit" });
-    else {
-      const stat = result.match(/\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+(\d+)/);
-      if (stat) setCharacteristic(character, stat[1] as CharacteristicKey, getCharacteristic(character, stat[1] as CharacteristicKey) + Number(stat[2]));
-      else character.equipment.push({ name: result, quantity: 1, notes: "Mustering-out benefit" });
+    const choices = musterChoiceOptions(result);
+    if (choices.length) {
+      character.pending_muster_benefit_choice = { options: choices, raw: result };
+      return;
+    }
+    for (const part of splitCompoundBenefit(result)) this.applySingleMusterBenefit(character, part);
+  }
+
+  private applySingleMusterBenefit(character: TravellerCharacter, result: string): void {
+    const text = result.trim();
+    const diceAssoc = text.match(/^(D3|D6)\s+(Contact|Ally|Rival|Enemy)s?$/i);
+    if (diceAssoc) {
+      const count = diceAssoc[1].toUpperCase() === "D3" ? this.roller.d3() : this.roller.d6();
+      for (let i = 0; i < count; i++) character.associates.push({ kind: diceAssoc[2].toLowerCase(), description: `${diceAssoc[2]} from mustering-out benefit` });
+      return;
+    }
+    const fixedAssoc = text.match(/^(\d+)?\s*(Contact|Ally|Rival|Enemy)s?$/i);
+    if (fixedAssoc) {
+      const count = Number(fixedAssoc[1] ?? 1);
+      for (let i = 0; i < count; i++) character.associates.push({ kind: fixedAssoc[2].toLowerCase(), description: `${fixedAssoc[2]} from mustering-out benefit` });
+      return;
+    }
+    const shipShares = text.match(/^(\d+|D3|D6)?\s*Ship Shares?$/i);
+    if (shipShares || /^Ship Share$/i.test(text)) {
+      const raw = shipShares?.[1] ?? "1";
+      character.ship_shares += raw === "D3" ? this.roller.d3() : raw === "D6" ? this.roller.d6() : Number(raw);
+      return;
+    }
+    const clanShares = text.match(/^(\d+|D3|D6)?\s*Clan Shares?$/i);
+    if (clanShares || /^Clan Share$/i.test(text)) {
+      const raw = clanShares?.[1] ?? "1";
+      character.clan_shares += raw === "D3" ? this.roller.d3() : raw === "D6" ? this.roller.d6() : Number(raw);
+      return;
+    }
+    const stat = text.match(/\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+(\d+)/i);
+    if (stat) {
+      const key = stat[1].toUpperCase() as CharacteristicKey;
+      if (key === "REP") character.reputation += Number(stat[2]);
+      else if (key === "RES") setCharacteristic(character, "SOC", getCharacteristic(character, "SOC") + Number(stat[2]));
+      else setCharacteristic(character, key, getCharacteristic(character, key) + Number(stat[2]));
+      if (key === "PSI") character.psi = getCharacteristic(character, "PSI");
+      return;
+    }
+    if (/TAS Membership/i.test(text)) {
+      if (character.tas_member) character.ship_shares += 2;
+      else character.tas_member = true;
+    } else if (/Reduce Large Debt/i.test(text)) {
+      character.medical_debt = Math.max(0, character.medical_debt - 700000);
+    } else if (/Reduce Small Debt/i.test(text)) {
+      character.medical_debt = Math.max(0, character.medical_debt - 70000);
+    } else if (/Scout Ship/i.test(text)) {
+      if (character.equipment.some((item) => item.name === "Scout Ship")) character.pending_benefit_rolls += 1;
+      else character.equipment.push({ name: "Scout Ship", quantity: 1, notes: "Detached duty; service obligation" });
+    } else if (/Free Trader|Lab Ship|Yacht/i.test(text)) {
+      const name = text.match(/Free Trader|Lab Ship|Yacht/i)?.[0] ?? text;
+      const existing = character.equipment.find((item) => item.name === name);
+      if (existing) existing.notes = "Mortgage: additional benefit roll applied";
+      else character.equipment.push({ name, quantity: 1, notes: "Mortgage: 1 of 4 benefit rolls paid" });
+    } else if (/Weapon|Armou?r|Blade|Gun|Combat Implant|Scientific Equipment|Personal Vehicle|Ship's Boat/i.test(text)) {
+      character.equipment.push({ name: text, quantity: 1, notes: "Mustering-out benefit; player selects exact item within source limits" });
+    } else {
+      const [name, speciality, level] = parseSkillGain(text);
+      if (level > 0 && name !== text) addSkill(character, name, level, speciality, true);
+      else character.equipment.push({ name: text, quantity: 1, notes: "Mustering-out benefit" });
     }
   }
 
@@ -971,4 +1030,23 @@ function normalizeSkillName(name: string): string {
   if (name === "Jack-of-all-Trades") return "Jack-of-All-Trades";
   if (name === "Jack-of-all-trades") return "Jack-of-All-Trades";
   return name.trim();
+}
+
+function splitCompoundBenefit(text: string): string[] {
+  if (/\s+and\s+/i.test(text) && !/\s+or\s+/i.test(text)) {
+    return text.split(/\s+and\s+/i).map((entry) => entry.trim()).filter(Boolean);
+  }
+  return [text.trim()];
+}
+
+function musterChoiceOptions(text: string): string[] {
+  if (!/\s+or\s+/i.test(text)) return [];
+  if (/\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+\d+\s+or\s+\b(STR|DEX|END|INT|EDU|SOC|CHA|TER|PSI|WLT|LCK|MRL|STY|RES|FOL|REP)\s*\+\d+/i.test(text)) {
+    return text.split(/\s+or\s+/i).map((entry) => entry.trim()).filter(Boolean);
+  }
+  if (/Ship's Boat|Air\/Raft|Personal Vehicle|Weapon|Gun|Blade|Armou?r|Combat Implant|Scientific Equipment/i.test(text)) {
+    return text.split(/\s+or\s+/i).map((entry) => entry.trim()).filter(Boolean);
+  }
+  const options = text.split(/\s+or\s+/i).map((entry) => entry.trim()).filter(Boolean);
+  return options.every((entry) => /\d$/.test(entry) || /^[A-Z][A-Za-z -]+(?:\s+\([^)]+\))?$/.test(entry)) ? options : [];
 }
