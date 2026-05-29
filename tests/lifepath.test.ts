@@ -257,4 +257,21 @@ describe("TravellerLifepathEngine", () => {
     character = engine.resolveCareerEventChoice(character, "Gunner").character;
     expect(character.pending_career_event_choice?.kind).toBe("skill_choice");
   });
+
+  it("runs the Aslan background setup sequence", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([4, 5, 7, 8, 8, 7]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 9, DEX: 8, END: 7, INT: 8, EDU: 7, SOC: 8 };
+    character.species_id = "aslan";
+    character = engine.beginAslanSetup(character).character;
+    character = engine.chooseAslanGender(character, "male").character;
+    character = engine.rollAslanClan(character).character;
+    character = engine.rollAslanAncestry(character).character;
+    expect(character.extra_characteristics.TER).toBeGreaterThanOrEqual(0);
+    character = engine.rollAslanFamily(character).character;
+    character = engine.rollAslanRite(character).character;
+    expect(character.phase).toBe("background");
+    expect(character.aslan_setup_status?.phase).toBe("done");
+    expect(Number(character.aslan_setup_status?.rite_score)).toBeGreaterThan(0);
+  });
 });

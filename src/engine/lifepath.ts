@@ -196,6 +196,107 @@ export class TravellerLifepathEngine {
     return { character: next };
   }
 
+  beginAslanSetup(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    next.phase = "aslan_setup";
+    next.aslan_setup_status = {
+      phase: "gender",
+      clan_type: null,
+      clan_dm_ancestral_deeds: 0,
+      ancestral_territory: 0,
+      family_position: null,
+      inherits_territory: false,
+      rite_score: 0
+    };
+    if (!getCharacteristic(next, "TER")) setCharacteristic(next, "TER", 0);
+    next.notes.push("Aslan background setup started.");
+    return { phase: "gender", character: next };
+  }
+
+  chooseAslanGender(character: TravellerCharacter, gender: "male" | "female"): EngineResult {
+    const next = cloneCharacter(character);
+    next.gender = gender;
+    next.aslan_setup_status = { ...(next.aslan_setup_status ?? {}), phase: "clan" };
+    next.notes.push(`Aslan gender chosen: ${gender}.`);
+    return { phase: "clan", gender, character: next };
+  }
+
+  rollAslanClan(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const species = this.rules.species(next.species_id) ?? {};
+    const table = this.rules.table<any>("aslan_background").clan?.results ?? {};
+    const roll = species.clan_determination === "fixed" ? null : this.roller.rollD(6);
+    const result = roll ? table[String(roll.total)] : { label: species.fixed_clan_name ?? "Tokouea'we", dm_ancestral_deeds: Number(species.fixed_clan_dm ?? 0) };
+    next.aslan_setup_status = {
+      ...(next.aslan_setup_status ?? {}),
+      phase: "ancestry",
+      clan_type: result.label,
+      clan_dm_ancestral_deeds: Number(result.dm_ancestral_deeds ?? 0)
+    };
+    next.notes.push(`Aslan clan: ${result.label}.`);
+    return { roll, result, character: next };
+  }
+
+  rollAslanAncestry(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const tables = this.rules.table<any>("aslan_background");
+    const dm = Number(next.aslan_setup_status?.clan_dm_ancestral_deeds ?? 0);
+    const ancestralRoll = this.roller.rollD(6);
+    const ancestralKey = String(Math.max(1, Math.min(7, ancestralRoll.total + dm)));
+    const ancestral = tables.ancestral_deeds?.results?.[ancestralKey] ?? {};
+    let territory = Number(ancestral.territory ?? 0);
+    const past: any[] = [];
+    for (let i = 0; i < 2; i++) {
+      const roll = this.roller.roll2D();
+      const result = tables.past_deeds?.results?.[String(Math.max(2, Math.min(12, roll.total)))] ?? {};
+      past.push({ roll, result });
+      if (result.territory === "lose_all") territory = 0;
+      else territory = Math.max(0, territory + Number(result.territory ?? 0));
+      this.applyAslanPastDeedBonus(next, result);
+    }
+    setCharacteristic(next, "TER", territory);
+    next.aslan_setup_status = { ...(next.aslan_setup_status ?? {}), phase: "family", ancestral_territory: territory };
+    next.notes.push(`Aslan ancestry territory: ${territory}.`);
+    return { ancestralRoll, ancestral, past, territory, character: next };
+  }
+
+  rollAslanFamily(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const table = this.rules.table<any>("aslan_background").family_inheritance?.results ?? {};
+    const roll = this.roller.roll2D();
+    const result = table[String(Math.max(2, Math.min(12, roll.total)))] ?? {};
+    const gender = next.gender === "female" ? "female" : "male";
+    const position = result[`label_${gender}`] ?? "Family Member";
+    const inherits = Boolean(result.inherits_territory);
+    if (!inherits) setCharacteristic(next, "TER", 0);
+    next.aslan_setup_status = { ...(next.aslan_setup_status ?? {}), phase: "rite", family_position: position, inherits_territory: inherits };
+    next.notes.push(`Aslan family position: ${position}.`);
+    return { roll, position, inherits, character: next };
+  }
+
+  rollAslanRite(character: TravellerCharacter): EngineResult {
+    const next = cloneCharacter(character);
+    const roll = this.roller.roll2D();
+    const gender = next.gender === "female" ? "female" : "male";
+    let score = roll.total;
+    if (gender === "male") {
+      score += CORE_CHARACTERISTICS.filter((stat) => getCharacteristic(next, stat) > roll.total).length;
+    } else {
+      score += (["INT", "EDU", "SOC"] as CharacteristicKey[]).filter((stat) => getCharacteristic(next, stat) > roll.total).length * 2;
+    }
+    const doubles = roll.dice.length >= 2 && roll.dice[0] === roll.dice[1];
+    let doublesResult: any = null;
+    if (doubles) {
+      const key = `${roll.dice[0]}+${roll.dice[1]}`;
+      doublesResult = this.rules.table<any>("aslan_background").rite_of_passage_events?.results?.[key] ?? null;
+      if (doublesResult?.bonus) this.applySingleMusterBenefit(next, String(doublesResult.bonus));
+    }
+    next.aslan_setup_status = { ...(next.aslan_setup_status ?? {}), phase: "done", rite_roll: roll, rite_score: score, rite_doubles: doubles };
+    next.phase = "background";
+    next.notes.push(`Aslan rite score: ${score}.`);
+    return { roll, score, doubles, doublesResult, character: next };
+  }
+
   qualifyForPreCareer(character: TravellerCharacter, trackId: string, options: Record<string, string> = {}): EngineResult {
     const track = this.rules.table<any>("education").tracks?.[trackId];
     if (!track) throw new Error(`Unknown pre-career track: ${trackId}`);
@@ -767,6 +868,17 @@ export class TravellerLifepathEngine {
       applied.push(addSkill(character, name, parsedLevel, speciality, true));
     }
     return applied;
+  }
+
+  private applyAslanPastDeedBonus(character: TravellerCharacter, result: any): void {
+    const bonus = result[`bonus_${character.gender === "female" ? "female" : "male"}`] ?? result.bonus;
+    if (!bonus) return;
+    if (/Enemy/i.test(bonus)) character.associates.push({ kind: "enemy", description: "Enemy from Aslan past deeds" });
+    if (/Ally/i.test(bonus)) character.associates.push({ kind: "ally", description: "Ally from Aslan past deeds" });
+    if (/Contact/i.test(bonus)) character.associates.push({ kind: "contact", description: "Contact from Aslan past deeds" });
+    const skillParts = String(bonus).split(/\s+or\s+|and/i).map((part) => part.trim()).filter((part) => /\d$/.test(part));
+    if (skillParts.length === 1) this.applySkillOrStat(character, skillParts[0], 0);
+    if (skillParts.length > 1) character.pending_life_event_choice = { kind: "pre_career_any_skill", options: skillParts, level: 0, prompt: result.label };
   }
 
   private applySkillResults(character: TravellerCharacter, results: string[], defaultLevel: number): string[] {
