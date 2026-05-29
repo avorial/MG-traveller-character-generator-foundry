@@ -98,4 +98,22 @@ describe("TravellerLifepathEngine", () => {
     expect(character.total_terms).toBe(4);
     expect(character.characteristics.STR).toBeLessThan(7);
   });
+
+  it("handles pre-career education events", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([5]));
+    let character = engine.freshCharacter();
+    character = engine.preCareerEventRoll(character).character;
+    expect(character.skills.find((skill) => skill.name === "Carouse")?.level).toBe(1);
+  });
+
+  it("can force pre-career graduation failure from event data", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([8, 3]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 9, EDU: 8, SOC: 7 };
+    character = engine.qualifyForPreCareer(character, "university").character;
+    character = engine.preCareerEventRoll(character).character;
+    character = engine.graduatePreCareer(character, ["Admin", "Medic"]).character;
+    expect(character.pre_career_status.graduated).toBe(false);
+    expect(character.phase).toBe("career");
+  });
 });

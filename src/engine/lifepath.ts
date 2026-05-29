@@ -254,6 +254,14 @@ export class TravellerLifepathEngine {
     if (!track) throw new Error("No active pre-career track to graduate.");
     const next = cloneCharacter(character);
     const graduation = track.graduation ?? {};
+    if (status.forced_graduation_failure) {
+      next.pre_career_status = { ...status, graduated: false, honours: false, graduation_roll: null, outcome_note: graduation.on_failure?.note ?? "Failed to graduate." };
+      next.age += Number(track.age_cost ?? 0);
+      next.pre_career_terms += Number(track.age_cost ?? 0) > 0 ? 1 : 0;
+      next.phase = "career";
+      next.notes.push(`Failed to graduate from ${track.name ?? trackId} due to pre-career event.`);
+      return { track, roll: null, graduated: false, honours: false, character: next };
+    }
     const dm = this.checkDm(next, graduation);
     const roll = this.roller.roll2D(dm);
     const honours = roll.total >= Number(graduation.honours_target ?? Infinity);
@@ -267,6 +275,19 @@ export class TravellerLifepathEngine {
     next.phase = "career";
     next.notes.push(`${graduated ? (honours ? "Graduated with honours from" : "Graduated from") : "Failed to graduate from"} ${track.name ?? trackId}.`);
     return { track, roll, graduated, honours, character: next };
+  }
+
+  preCareerEventRoll(character: TravellerCharacter, aslan = false): EngineResult {
+    const next = cloneCharacter(character);
+    const education = this.rules.table<any>("education");
+    const table = aslan ? education.aslan_pre_career_events : education.pre_career_events;
+    const roll = this.roller.roll2D();
+    const key = String(Math.max(2, Math.min(12, roll.total)));
+    const event = String(table?.[key] ?? "No event.");
+    this.applyPreCareerEventEffects(next, roll.total, event, aslan);
+    next.pre_career_status = { ...(next.pre_career_status ?? {}), last_event_roll: roll.total, last_event: event };
+    next.notes.push(`Pre-career event: ${event}`);
+    return { roll, event, character: next };
   }
 
   qualifyForCareer(character: TravellerCharacter, careerId: string): EngineResult {
@@ -746,6 +767,33 @@ export class TravellerLifepathEngine {
     if (/Gain (?:an|one) Ally/i.test(text)) character.associates.push({ kind: "ally", description: `Ally from ${term.career_id} event` });
     if (/Gain (?:an|one) Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: `Enemy from ${term.career_id} event` });
     if (/Gain (?:a|one) Rival/i.test(text)) character.associates.push({ kind: "rival", description: `Rival from ${term.career_id} event` });
+  }
+
+  private applyPreCareerEventEffects(character: TravellerCharacter, rollTotal: number, text: string, aslan: boolean): void {
+    if (/Carouse 1/i.test(text)) addSkill(character, "Carouse", 1, null, true);
+    if (/Increase your SOC by \+1/i.test(text)) setCharacteristic(character, "SOC", getCharacteristic(character, "SOC") + 1);
+    if (/Gain D3 Allies/i.test(text)) {
+      const count = this.roller.d3();
+      for (let i = 0; i < count; i++) character.associates.push({ kind: "ally", description: "Ally from pre-career education" });
+    }
+    if (/Gain a Rival/i.test(text)) character.associates.push({ kind: "rival", description: "Rival from pre-career education" });
+    if (/Gain an Enemy/i.test(text)) character.associates.push({ kind: "enemy", description: "Enemy from pre-career education" });
+    if (/Gain one Ally/i.test(text)) character.associates.push({ kind: "ally", description: "Ally from pre-career education" });
+    if (/gain an Enemy in a rival clan/i.test(text)) character.associates.push({ kind: "enemy", description: "Enemy in a rival clan" });
+    if (/any one skill at level 0/i.test(text) || /any skill of your choice/i.test(text)) {
+      character.pending_life_event_choice = { kind: "pre_career_any_skill", level: 0, excluded: ["Jack-of-All-Trades"], prompt: text };
+    }
+    if (/crash and fail to graduate|cannot redeem yourself in time to graduate/i.test(text)) {
+      character.pre_career_status = { ...(character.pre_career_status ?? {}), forced_graduation_failure: true };
+    }
+    if (/Prisoner career in your next term/i.test(text) && rollTotal === 4) character.forced_next_career_id = "prisoner";
+    if (/join the Drifter career next term/i.test(text)) {
+      character.pending_life_event_choice = { kind: "pre_career_war_choice", options: ["drifter", "draft", "avoid"], prompt: text };
+    }
+    if (aslan && /become Outcast|must become Outcast/i.test(text)) character.forced_next_career_id = "aslan_outcast";
+    if (aslan && /Outlaw or Wanderer career without a qualification roll/i.test(text)) {
+      character.auto_qualify_career_ids.push("aslan_outlaw", "aslan_wanderer");
+    }
   }
 
   private benefitRollsEarned(terms: number, rank: number, forfeited: boolean): number {
