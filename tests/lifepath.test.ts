@@ -608,4 +608,26 @@ describe("TravellerLifepathEngine", () => {
     expect(character.skills.find((skill) => skill.name === "Steward")?.level).toBe(1);
     expect(character.skills.find((skill) => skill.name === "Diplomat")?.level).toBe(1);
   });
+
+  it("finalizes robot configurations with skills and equipment", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    const character = engine.finalizeRobot({
+      name: "Survey Drone",
+      chassis: "Probe",
+      STR: 4,
+      DEX: 8,
+      END: 6,
+      INT: 5,
+      EDU: 0,
+      cost: 25000,
+      protection: 4,
+      skills: ["Recon 1", { name: "Electronics", speciality: "Sensors", level: 2 }],
+      equipment: ["Sensor Suite"],
+      traits: ["Machine"]
+    }).character;
+    expect(character.character_type).toBe("robot");
+    expect(character.credits).toBe(-25000);
+    expect(character.skills.find((skill) => skill.name === "Recon")?.level).toBe(1);
+    expect(character.equipment.find((item) => item.name === "Robot Armour")?.protection).toBe(4);
+  });
 });

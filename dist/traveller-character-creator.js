@@ -1141,14 +1141,24 @@ class G {
   }
   finalizeRobot(e) {
     const s = O();
-    return s.character_type = "robot", s.robot_config = e, s.name = String(e.name ?? "Traveller Robot"), s.age = 0, s.characteristics = {
+    s.character_type = "robot", s.robot_config = e, s.name = String(e.name ?? "Traveller Robot"), s.age = 0, s.characteristics = {
       STR: Number(e.STR ?? 0),
       DEX: Number(e.DEX ?? 0),
       END: Number(e.END ?? 0),
       INT: Number(e.INT ?? 0),
       EDU: Number(e.EDU ?? 0),
       SOC: 0
-    }, s.phase = "done", s.notes.push("Created robot placeholder from supplied robot configuration."), { character: s };
+    }, s.capsule_description = String(e.description ?? e.chassis ?? "");
+    for (const t of e.skills ?? [])
+      if (typeof t == "string") {
+        const [i, n, r] = E(t);
+        b(s, i, r, n, !0);
+      } else t != null && t.name && b(s, String(t.name), Number(t.level ?? 0), t.speciality ? String(t.speciality) : null, !0);
+    for (const t of e.equipment ?? [])
+      s.equipment.push(typeof t == "string" ? { name: t, quantity: 1, notes: null } : { name: String(t.name ?? "Robot Equipment"), quantity: Number(t.quantity ?? 1), notes: t.notes ? String(t.notes) : null, protection: t.protection == null ? null : Number(t.protection) });
+    e.protection != null && s.equipment.push({ name: "Robot Armour", quantity: 1, notes: "Integrated protection", protection: Number(e.protection) }), e.cost != null && (s.credits = -Number(e.cost));
+    for (const t of e.traits ?? []) s.traits.push(typeof t == "string" ? { name: t } : t);
+    return s.phase = "done", s.notes.push("Created robot from supplied robot configuration."), { character: s };
   }
   generateNpc() {
     let e = O();
@@ -1562,7 +1572,12 @@ function oe(l) {
 function le(l) {
   var t, i;
   const e = [], s = [];
-  ((t = l.aslan_setup_status) == null ? void 0 : t.rite_score) != null && s.push(`Rite of Passage: ${l.aslan_setup_status.rite_score}`), (i = l.aslan_setup_status) != null && i.clan_name && s.push(`Clan: ${l.aslan_setup_status.clan_name}`), l.droyne_caste && s.push(`Caste: ${C(l.droyne_caste)} (${l.droyne_caste_number || "unknown"})`), l.hiver_nest_type && s.push(`Nest: ${C(l.hiver_nest_type)}`), (l.kkree_wives || l.kkree_family_members.length) && (s.push(`Family: ${l.kkree_wives} wives, ${l.kkree_family_members.length} other members`), l.kkree_soc_rank_degree && s.push(`Rank degree: ${C(l.kkree_soc_rank_degree.replaceAll("_", " "))}`)), s.length && e.push(A("Creation Details", "item", {
+  if (((t = l.aslan_setup_status) == null ? void 0 : t.rite_score) != null && s.push(`Rite of Passage: ${l.aslan_setup_status.rite_score}`), (i = l.aslan_setup_status) != null && i.clan_name && s.push(`Clan: ${l.aslan_setup_status.clan_name}`), l.droyne_caste && s.push(`Caste: ${C(l.droyne_caste)} (${l.droyne_caste_number || "unknown"})`), l.hiver_nest_type && s.push(`Nest: ${C(l.hiver_nest_type)}`), (l.kkree_wives || l.kkree_family_members.length) && (s.push(`Family: ${l.kkree_wives} wives, ${l.kkree_family_members.length} other members`), l.kkree_soc_rank_degree && s.push(`Rank degree: ${C(l.kkree_soc_rank_degree.replaceAll("_", " "))}`)), l.character_type === "robot" && l.robot_config) {
+    s.push("Type: Robot");
+    for (const [n, r] of Object.entries(l.robot_config))
+      ["skills", "equipment", "traits"].includes(n) || r != null && r !== "" && s.push(`${C(n.replaceAll("_", " "))}: ${String(r)}`);
+  }
+  s.length && e.push(A("Creation Details", "item", {
     tl: 0,
     weight: 0,
     cost: 0,

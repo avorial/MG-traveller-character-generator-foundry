@@ -1666,8 +1666,25 @@ export class TravellerLifepathEngine {
       EDU: Number(robotConfig.EDU ?? 0),
       SOC: 0
     };
+    character.capsule_description = String(robotConfig.description ?? robotConfig.chassis ?? "");
+    for (const skill of robotConfig.skills as any[] ?? []) {
+      if (typeof skill === "string") {
+        const [name, speciality, level] = parseSkillGain(skill);
+        addSkill(character, name, level, speciality, true);
+      } else if (skill?.name) {
+        addSkill(character, String(skill.name), Number(skill.level ?? 0), skill.speciality ? String(skill.speciality) : null, true);
+      }
+    }
+    for (const item of robotConfig.equipment as any[] ?? []) {
+      character.equipment.push(typeof item === "string"
+        ? { name: item, quantity: 1, notes: null }
+        : { name: String(item.name ?? "Robot Equipment"), quantity: Number(item.quantity ?? 1), notes: item.notes ? String(item.notes) : null, protection: item.protection == null ? null : Number(item.protection) });
+    }
+    if (robotConfig.protection != null) character.equipment.push({ name: "Robot Armour", quantity: 1, notes: "Integrated protection", protection: Number(robotConfig.protection) });
+    if (robotConfig.cost != null) character.credits = -Number(robotConfig.cost);
+    for (const trait of robotConfig.traits as any[] ?? []) character.traits.push(typeof trait === "string" ? { name: trait } : trait);
     character.phase = "done";
-    character.notes.push("Created robot placeholder from supplied robot configuration.");
+    character.notes.push("Created robot from supplied robot configuration.");
     return { character };
   }
 

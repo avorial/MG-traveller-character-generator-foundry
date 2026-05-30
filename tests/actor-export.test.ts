@@ -28,4 +28,14 @@ describe("mgt2e actor export", () => {
     expect(actor.items.find((item: any) => item.name === "Creation Details")?.system.notes).toContain("2 wives");
     expect(actor.items.find((item: any) => item.name === "Escort")?.type).toBe("associate");
   });
+
+  it("exports robot configuration details", () => {
+    const character = newCharacter();
+    character.character_type = "robot";
+    character.robot_config = { chassis: "Probe", cost: 25000 };
+    character.characteristics = { STR: 4, DEX: 8, END: 6, INT: 5, EDU: 0, SOC: 0 };
+    const actor = exportActorData(character);
+    expect(actor.system.termLength).toBe(0);
+    expect(actor.items.find((item: any) => item.name === "Creation Details")?.system.notes).toContain("Type: Robot");
+  });
 });

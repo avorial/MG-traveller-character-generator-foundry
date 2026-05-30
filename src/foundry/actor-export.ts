@@ -154,6 +154,13 @@ function exportAlienState(character: TravellerCharacter): any[] {
     lines.push(`Family: ${character.kkree_wives} wives, ${character.kkree_family_members.length} other members`);
     if (character.kkree_soc_rank_degree) lines.push(`Rank degree: ${titleCase(character.kkree_soc_rank_degree.replaceAll("_", " "))}`);
   }
+  if (character.character_type === "robot" && character.robot_config) {
+    lines.push("Type: Robot");
+    for (const [key, value] of Object.entries(character.robot_config)) {
+      if (["skills", "equipment", "traits"].includes(key)) continue;
+      if (value != null && value !== "") lines.push(`${titleCase(key.replaceAll("_", " "))}: ${String(value)}`);
+    }
+  }
   if (lines.length) {
     items.push(itemShell("Creation Details", "item", {
       tl: 0,
