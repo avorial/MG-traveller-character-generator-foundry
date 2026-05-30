@@ -17,6 +17,7 @@ export function exportActorData(character: TravellerCharacter, options: ExportOp
 
   const hitsMax = character.characteristics.STR + character.characteristics.DEX + character.characteristics.END;
   const items = [
+    ...exportAlienState(character),
     ...exportAssociates(character),
     ...exportTerms(character),
     ...exportEquipment(character)
@@ -140,6 +141,40 @@ function exportAssociates(character: TravellerCharacter): any[] {
       description: associate.description
     });
   });
+}
+
+function exportAlienState(character: TravellerCharacter): any[] {
+  const items: any[] = [];
+  const lines: string[] = [];
+  if (character.aslan_setup_status?.rite_score != null) lines.push(`Rite of Passage: ${character.aslan_setup_status.rite_score}`);
+  if (character.aslan_setup_status?.clan_name) lines.push(`Clan: ${character.aslan_setup_status.clan_name}`);
+  if (character.droyne_caste) lines.push(`Caste: ${titleCase(character.droyne_caste)} (${character.droyne_caste_number || "unknown"})`);
+  if (character.hiver_nest_type) lines.push(`Nest: ${titleCase(character.hiver_nest_type)}`);
+  if (character.kkree_wives || character.kkree_family_members.length) {
+    lines.push(`Family: ${character.kkree_wives} wives, ${character.kkree_family_members.length} other members`);
+    if (character.kkree_soc_rank_degree) lines.push(`Rank degree: ${titleCase(character.kkree_soc_rank_degree.replaceAll("_", " "))}`);
+  }
+  if (lines.length) {
+    items.push(itemShell("Creation Details", "item", {
+      tl: 0,
+      weight: 0,
+      cost: 0,
+      notes: lines.join("\n"),
+      active: false,
+      quantity: 1,
+      status: "carried",
+      legality: 0,
+      description: htmlParagraphs(lines.join("\n"))
+    }, "systems/mgt2e/icons/items/software.svg"));
+  }
+  for (const member of character.kkree_family_members) {
+    items.push(itemShell(String(member.name ?? member.role ?? "K'kree Family Member"), "associate", {
+      associate: { relationship: "family", affinity: 3, enmity: 0, power: 1, influence: 1 },
+      relation: "family",
+      description: Object.entries(member).map(([key, value]) => `${key}: ${String(value)}`).join("\n")
+    }));
+  }
+  return items;
 }
 
 function exportTerms(character: TravellerCharacter): any[] {

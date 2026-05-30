@@ -15,4 +15,17 @@ describe("mgt2e actor export", () => {
     expect(actor.system.skills.guncombat.specialities.slug.value).toBe("1");
     expect(actor.flags.travellerCreator.sourceVersion).toBe("test");
   });
+
+  it("exports alien creation state as visible items", () => {
+    const character = newCharacter();
+    character.name = "Kkree Envoy";
+    character.species_id = "kkree";
+    character.characteristics = { STR: 13, DEX: 7, END: 7, INT: 9, EDU: 9, SOC: 8 };
+    character.kkree_wives = 2;
+    character.kkree_soc_rank_degree = "merchant";
+    character.kkree_family_members = [{ name: "Escort", role: "warrior" }];
+    const actor = exportActorData(character);
+    expect(actor.items.find((item: any) => item.name === "Creation Details")?.system.notes).toContain("2 wives");
+    expect(actor.items.find((item: any) => item.name === "Escort")?.type).toBe("associate");
+  });
 });
