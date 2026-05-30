@@ -467,7 +467,11 @@ export class TravellerLifepathEngine {
     if (!career) throw new Error(`Unknown career: ${careerId}`);
     const assignments = this.assignmentIds(career);
     const resolvedAssignment = assignmentId ?? assignments[0];
-    if (!this.assignmentData(career, resolvedAssignment)) throw new Error(`Unknown assignment ${resolvedAssignment} for ${careerId}`);
+    const assignment = this.assignmentData(career, resolvedAssignment);
+    if (!assignment) throw new Error(`Unknown assignment ${resolvedAssignment} for ${careerId}`);
+    if (assignment.allowed_genders?.length && character.gender && !assignment.allowed_genders.includes(character.gender)) {
+      throw new Error(`${assignment.name ?? resolvedAssignment} is not available to ${character.gender} characters.`);
+    }
     const next = cloneCharacter(character);
     const careerTerms = next.term_history.filter((term) => term.career_id === careerId).length;
     const commissioned = Boolean(career.all_commissioned) || next.starts_commissioned_career_id === careerId || Boolean(next.completed_careers.find((record) => record.career_id === careerId && record.commissioned));
@@ -1113,7 +1117,14 @@ export class TravellerLifepathEngine {
   private rollOnCareerSkillTable(character: TravellerCharacter, career: any, tableId: string): { roll: RollResult; entry: string; note: string | null } {
     const table = career.skill_tables?.[tableId];
     if (!table) throw new Error(`Unknown skill table ${tableId} for ${career.id}`);
+    const term = character.current_term;
+    if (table.assignment_only && term?.assignment_id !== table.assignment_only) throw new Error(`${table.name ?? tableId} is only available to ${table.assignment_only}.`);
+    if (table.requires_commission && !term?.commissioned) throw new Error(`${table.name ?? tableId} requires a commission.`);
     if (table.requires_edu && getCharacteristic(character, "EDU") < Number(table.requires_edu)) throw new Error(`${table.name ?? tableId} requires EDU ${table.requires_edu}+.`);
+    if (table.requires_int && getCharacteristic(character, "INT") < Number(table.requires_int)) throw new Error(`${table.name ?? tableId} requires INT ${table.requires_int}+.`);
+    if (table.requires_res && getCharacteristic(character, "RES") < Number(table.requires_res)) throw new Error(`${table.name ?? tableId} requires RES ${table.requires_res}+.`);
+    if (table.requires_psi && getCharacteristic(character, "PSI") < Number(table.requires_psi)) throw new Error(`${table.name ?? tableId} requires PSI ${table.requires_psi}+.`);
+    if (table.requires_soc && getCharacteristic(character, "SOC") < Number(table.requires_soc)) throw new Error(`${table.name ?? tableId} requires SOC ${table.requires_soc}+.`);
     const roll = this.roller.rollD(6);
     const entry = String(table[String(Math.max(1, Math.min(6, roll.total)))] ?? "");
     const note = this.applySkillOrStat(character, entry, 1);

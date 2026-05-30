@@ -417,4 +417,37 @@ describe("TravellerLifepathEngine", () => {
     expect(result.qualified).toBe(false);
     expect(result.blockedReason).toBe("requires warrior caste");
   });
+
+  it("blocks gender-restricted assignments", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.species_id = "aslan";
+    character.gender = "female";
+    expect(() => engine.startTerm(character, "aslan_spacer", "pilot")).toThrow(/not available to female/);
+  });
+
+  it("blocks restricted career skill tables", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.startTerm(character, "agent", "law_enforcement").character;
+    expect(() => engine.rollOnSkillTable(character, "intelligence")).toThrow(/only available/);
+    expect(() => engine.rollOnSkillTable(character, "advanced_education")).toThrow(/requires EDU 8/);
+  });
+
+  it("blocks commission and alien characteristic skill tables", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 8, SOC: 7 };
+    character = engine.startTerm(character, "army", "infantry").character;
+    expect(() => engine.rollOnSkillTable(character, "officer")).toThrow(/requires a commission/);
+
+    character = engine.freshCharacter();
+    character.species_id = "hiver";
+    character.hiver_nest_type = "academic";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 8, SOC: 7 };
+    character.extra_characteristics.RES = 6;
+    character = engine.startTerm(character, "hiver_academic", "researcher").character;
+    expect(() => engine.rollOnSkillTable(character, "active_academic")).toThrow(/requires RES 7/);
+  });
 });
