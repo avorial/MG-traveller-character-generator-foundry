@@ -274,4 +274,25 @@ describe("TravellerLifepathEngine", () => {
     expect(character.aslan_setup_status?.phase).toBe("done");
     expect(Number(character.aslan_setup_status?.rite_score)).toBeGreaterThan(0);
   });
+
+  it("rolls Hiver nest type during species setup", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([9]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.applySpecies(character, "hiver").character;
+    expect(character.hiver_nest_type).toBe("academic");
+    expect(character.characteristics.EDU).toBe(10);
+  });
+
+  it("uses Hiver status advancement thresholds", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([15]));
+    let character = engine.freshCharacter();
+    character.species_id = "hiver";
+    character.hiver_nest_type = "academic";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 9, SOC: 10 };
+    character = engine.startTerm(character, "hiver_academic", "researcher").character;
+    character = engine.advancementRoll(character).character;
+    expect(character.current_term?.rank).toBe(2);
+    expect(character.hiver_manipulator_bonus_awarded).toBe(true);
+  });
 });

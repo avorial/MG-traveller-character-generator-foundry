@@ -79,6 +79,16 @@ export class TravellerLifepathEngine {
         if (!getCharacteristic(next, stat)) setCharacteristic(next, stat, this.roller.roll2D().total);
       }
     }
+    if (species.hiver_species) {
+      const nestRoll = this.roller.roll2D();
+      const nestType = species.hiver_nest_table?.[String(Math.max(2, Math.min(12, nestRoll.total)))] ?? "generalist";
+      next.hiver_nest_type = nestType;
+      const background = species.hiver_nest_benefits?.[nestType]?.background;
+      if (background) {
+        for (const part of String(background).split(",")) this.applySkillOrStat(next, part.trim(), 0);
+      }
+      next.notes.push(`Hiver nest type: ${nestType}.`);
+    }
     next.forbidden_skills = [...(species.forbidden_skills ?? [])];
     next.traits = [...(species.traits ?? [])];
 
@@ -603,6 +613,7 @@ export class TravellerLifepathEngine {
     const next = cloneCharacter(character);
     const term = this.requireCurrentTerm(next);
     const career = this.rules.career(term.career_id);
+    if (career.hiver_career) return this.hiverAdvancementRoll(next, career, term);
     const assignment = this.assignmentData(career, term.assignment_id);
     const check = career.advancement ?? assignment.advancement ?? {};
     const dm = this.checkDm(next, check)
@@ -946,6 +957,38 @@ export class TravellerLifepathEngine {
     const career = this.rules.career(careerId);
     if (!career) return null;
     return this.rollOnCareerSkillTable(character, career, tableId).note;
+  }
+
+  private hiverAdvancementRoll(character: TravellerCharacter, career: any, term: NonNullable<TravellerCharacter["current_term"]>): EngineResult {
+    const species = this.rules.species(character.species_id) ?? this.rules.species("hiver") ?? {};
+    const table = career.hiver_advancement_table ?? species.hiver_advancement_table ?? {};
+    const dm = characteristicDm(getCharacteristic(character, "SOC")) + character.dm_next_advancement + character.dm_permanent_advancement;
+    const roll = this.roller.roll2D(dm);
+    const seniorMin = Number(table.senior_min ?? 10);
+    const manipulatorMin = Number(table.manipulator_min ?? 15);
+    const oldRank = term.rank;
+    let newRank = oldRank;
+    if (roll.total >= manipulatorMin && oldRank < 2) newRank = 2;
+    else if (roll.total >= seniorMin && oldRank < 1) newRank = 1;
+    term.advanced = newRank > oldRank;
+    term.advancement_roll_total = roll.total;
+    character.dm_next_advancement = 0;
+    if (newRank > oldRank) {
+      term.rank = newRank;
+      term.rank_title = this.rankTitle(career, term.commissioned, newRank) ?? ({ 1: "Senior", 2: "Manipulator" } as Record<number, string>)[newRank] ?? null;
+      if (newRank === 1 && !character.hiver_senior_bonus_awarded) {
+        character.hiver_senior_bonus_awarded = true;
+        const bonus = career.hiver_senior_bonus ?? species.hiver_nest_benefits?.[character.hiver_nest_type ?? "generalist"]?.senior_bonus;
+        if (bonus) this.applySkillOrStat(character, String(bonus), 1);
+      }
+      if (newRank === 2 && !character.hiver_manipulator_bonus_awarded) {
+        character.hiver_manipulator_bonus_awarded = true;
+        const bonus = career.hiver_manipulator_bonus ?? species.hiver_nest_benefits?.[character.hiver_nest_type ?? "generalist"]?.manipulator_bonus;
+        if (bonus) for (const part of String(bonus).split(",")) this.applySkillOrStat(character, part.trim(), 1);
+      }
+    }
+    character.notes.push(`Hiver advancement total ${roll.total}; rank ${term.rank}.`);
+    return { career, roll, advanced: term.advanced, character };
   }
 
   private rollOnCareerSkillTable(character: TravellerCharacter, career: any, tableId: string): { roll: RollResult; entry: string; note: string | null } {
