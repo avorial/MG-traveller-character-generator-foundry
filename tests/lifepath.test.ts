@@ -450,4 +450,72 @@ describe("TravellerLifepathEngine", () => {
     character = engine.startTerm(character, "hiver_academic", "researcher").character;
     expect(() => engine.rollOnSkillTable(character, "active_academic")).toThrow(/requires RES 7/);
   });
+
+  it("blocks careers that require prior source-career service", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.society_id = "third_imperium";
+    character.characteristics = { STR: 10, DEX: 7, END: 10, INT: 9, EDU: 9, SOC: 9 };
+    let result = engine.qualifyForCareer(character, "ini");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toMatch(/requires prior service/);
+
+    character.completed_careers.push({
+      career_id: "navy",
+      assignment_id: "line_crew",
+      terms_served: 1,
+      final_rank: 1,
+      final_rank_title: null,
+      commissioned: true,
+      left_due_to: "voluntary",
+      benefit_rolls_used: 0,
+      benefit_rolls_earned: 0
+    });
+    result = engine.qualifyForCareer(character, "ini");
+    expect(result.blockedReason).toBeUndefined();
+  });
+
+  it("blocks Imperial Guard until a source career has advanced", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.society_id = "third_imperium";
+    character.characteristics = { STR: 10, DEX: 7, END: 10, INT: 7, EDU: 7, SOC: 9 };
+    character.completed_careers.push({
+      career_id: "army",
+      assignment_id: "infantry",
+      terms_served: 1,
+      final_rank: 0,
+      final_rank_title: null,
+      commissioned: false,
+      left_due_to: "voluntary",
+      benefit_rolls_used: 0,
+      benefit_rolls_earned: 0
+    });
+    let result = engine.qualifyForCareer(character, "imperial_guard");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires advancement in a source career");
+
+    character.term_history.push({
+      career_id: "army",
+      assignment_id: "infantry",
+      term_number: 1,
+      overall_term_number: 1,
+      rank: 1,
+      rank_title: null,
+      commissioned: false,
+      events: [],
+      skills_gained: [],
+      survived: true,
+      advanced: true,
+      mishap: null,
+      basic_training: true,
+      benefit_forfeited: false,
+      survival_roll_total: 8,
+      advancement_roll_total: 10,
+      cover_career_id: null,
+      frozen_watch: false
+    });
+    result = engine.qualifyForCareer(character, "imperial_guard");
+    expect(result.blockedReason).toBeUndefined();
+  });
 });

@@ -1018,6 +1018,10 @@ export class TravellerLifepathEngine {
     if (career.gender_restriction && character.gender && career.gender_restriction !== character.gender) return `requires ${career.gender_restriction} gender`;
     if (career.male_target && character.gender === "male" && Number(character.aslan_setup_status?.rite_score ?? 0) < Number(career.male_target)) return `requires Rite ${career.male_target}+`;
     if (career.droyne_caste && character.species_id === "droyne" && character.droyne_caste !== career.droyne_caste) return `requires ${career.droyne_caste} caste`;
+    if (career.requires_source_career?.length && !this.hasSourceCareer(character, career.requires_source_career)) return `requires prior service in ${career.requires_source_career.join(", ")}`;
+    if ((career.requires_advancement || career.advancement_required) && career.requires_source_career?.length && !this.hasAdvancedInSourceCareer(character, career.requires_source_career)) {
+      return "requires advancement in a source career";
+    }
     if (career.hiver_open_to?.length && character.species_id === "hiver" && !career.hiver_open_to.includes("any") && !career.hiver_open_to.includes(character.hiver_nest_type)) {
       const alsoStatus = career.hiver_open_to_also_if_status;
       const statusAllows = alsoStatus && Number((character as any).hiver_status ?? 0) >= Number(alsoStatus.status ?? alsoStatus.min ?? 0);
@@ -1035,6 +1039,17 @@ export class TravellerLifepathEngine {
     if (species?.blocked_careers?.includes(career.id)) return `blocked for ${species.name ?? character.species_id}`;
     if (species?.allowed_species_careers?.length && !species.allowed_species_careers.includes(career.id)) return `not in species career list`;
     return null;
+  }
+
+  private hasSourceCareer(character: TravellerCharacter, sourceCareerIds: string[]): boolean {
+    return character.completed_careers.some((record) => sourceCareerIds.includes(record.career_id))
+      || character.term_history.some((term) => sourceCareerIds.includes(term.career_id))
+      || Boolean(character.current_term && sourceCareerIds.includes(character.current_term.career_id));
+  }
+
+  private hasAdvancedInSourceCareer(character: TravellerCharacter, sourceCareerIds: string[]): boolean {
+    return character.term_history.some((term) => sourceCareerIds.includes(term.career_id) && term.advanced === true)
+      || Boolean(character.current_term && sourceCareerIds.includes(character.current_term.career_id) && character.current_term.advanced === true);
   }
 
   private requireCurrentTerm(character: TravellerCharacter): NonNullable<TravellerCharacter["current_term"]> {
