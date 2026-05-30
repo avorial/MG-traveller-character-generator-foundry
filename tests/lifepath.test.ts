@@ -314,4 +314,78 @@ describe("TravellerLifepathEngine", () => {
     character.species_id = "hiver";
     expect(() => engine.testPsionics(character)).toThrow(/cannot develop/);
   });
+
+  it("applies age qualification modifiers", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([6]));
+    let character = engine.freshCharacter();
+    character.age = 30;
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    const result = engine.qualifyForCareer(character, "army");
+    expect(result.roll).toMatchObject({ natural: 6, total: 4, dm: -2 });
+    expect(result.qualified).toBe(false);
+  });
+
+  it("applies last career qualification modifiers", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([3]));
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character.completed_careers.push({
+      career_id: "agent",
+      assignment_id: "law_enforcement",
+      terms_served: 1,
+      final_rank: 0,
+      final_rank_title: null,
+      commissioned: false,
+      left_due_to: "voluntary",
+      benefit_rolls_used: 0,
+      benefit_rolls_earned: 0
+    });
+    const result = engine.qualifyForCareer(character, "bounty_hunter");
+    expect(result.roll).toMatchObject({ natural: 3, total: 6, dm: 3 });
+    expect(result.qualified).toBe(true);
+  });
+
+  it("blocks hard SOC qualification gates", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.society_id = "zhodani_consulate";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 10 };
+    let result = engine.qualifyForCareer(character, "zhodani_prole");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires SOC 9-");
+
+    character.characteristics.SOC = 9;
+    result = engine.qualifyForCareer(character, "zhodani_guard");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires SOC 10+");
+  });
+
+  it("blocks Aslan gender and rite-gated careers", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.species_id = "aslan";
+    character.society_id = "aslan_hierate";
+    character.gender = "male";
+    character.aslan_setup_status = { rite_score: 9 };
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    let result = engine.qualifyForCareer(character, "aslan_management");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires female gender");
+
+    result = engine.qualifyForCareer(character, "aslan_scientist");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires Rite 10+");
+  });
+
+  it("blocks Hiver careers that are not open to the nest type", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.species_id = "hiver";
+    character.society_id = "hiver_federation";
+    character.hiver_nest_type = "industrial";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    const result = engine.qualifyForCareer(character, "hiver_academic");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("not open to industrial nest Hivers");
+  });
 });

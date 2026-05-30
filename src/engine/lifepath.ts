@@ -849,13 +849,30 @@ export class TravellerLifepathEngine {
   }
 
   private checkDm(character: TravellerCharacter, check: any): number {
-    let dm = characteristicDm(getCharacteristic(character, check?.characteristic as CharacteristicKey));
+    let dm = check?.characteristic ? characteristicDm(this.checkCharacteristicValue(character, check.characteristic)) : 0;
     for (const modifier of check?.modifiers ?? []) {
       if (modifier.type === "per_previous_term") dm += Number(modifier.dm ?? 0) * character.total_terms;
       if (modifier.type === "per_previous_career") dm += Number(modifier.dm ?? 0) * character.completed_careers.length;
-      if (modifier.type === "characteristic_threshold" && getCharacteristic(character, modifier.characteristic) >= Number(modifier.threshold ?? 0)) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "characteristic_threshold" && this.checkCharacteristicValue(character, modifier.characteristic) >= Number(modifier.threshold ?? 0)) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "characteristic_minimum" && this.checkCharacteristicValue(character, modifier.characteristic) >= Number(modifier.min_value ?? modifier.threshold ?? 0)) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "age" && character.age >= Number(modifier.threshold ?? modifier.age_threshold ?? 0)) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "last_career" && (modifier.careers ?? []).includes(this.lastCareerId(character))) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "soc_minimum" && getCharacteristic(character, "SOC") >= Number(modifier.soc ?? 0)) dm += Number(modifier.dm ?? 0);
+      if (modifier.type === "soc_maximum" && getCharacteristic(character, "SOC") <= Number(modifier.soc ?? 0)) dm += Number(modifier.dm ?? 0);
     }
     return dm;
+  }
+
+  private checkCharacteristicValue(character: TravellerCharacter, characteristic: unknown): number {
+    const key = String(characteristic ?? "").toUpperCase();
+    if (!key) return 0;
+    if (key === "RITE_OF_PASSAGE") return Number(character.aslan_setup_status?.rite_score ?? 0);
+    return getCharacteristic(character, key as CharacteristicKey);
+  }
+
+  private lastCareerId(character: TravellerCharacter): string | null {
+    if (character.current_term?.career_id) return character.current_term.career_id;
+    return character.completed_careers.at(-1)?.career_id ?? null;
   }
 
   private applyStatBlock(character: TravellerCharacter, block: Record<string, unknown>): void {
@@ -951,6 +968,17 @@ export class TravellerLifepathEngine {
   private careerBlocked(character: TravellerCharacter, career: any): string | null {
     if (character.banned_career_ids.includes(career.id)) return "career is banned by a prior result";
     if (character.forced_next_career_id && character.forced_next_career_id !== career.id) return `must enter ${character.forced_next_career_id}`;
+    if (career.gender_restriction && character.gender && career.gender_restriction !== character.gender) return `requires ${career.gender_restriction} gender`;
+    if (career.male_target && character.gender === "male" && Number(character.aslan_setup_status?.rite_score ?? 0) < Number(career.male_target)) return `requires Rite ${career.male_target}+`;
+    if (career.hiver_open_to?.length && character.species_id === "hiver" && !career.hiver_open_to.includes("any") && !career.hiver_open_to.includes(character.hiver_nest_type)) {
+      const alsoStatus = career.hiver_open_to_also_if_status;
+      const statusAllows = alsoStatus && Number((character as any).hiver_status ?? 0) >= Number(alsoStatus.status ?? alsoStatus.min ?? 0);
+      if (!statusAllows) return `not open to ${character.hiver_nest_type ?? "unknown"} nest Hivers`;
+    }
+    for (const modifier of career.qualification?.modifiers ?? []) {
+      if (modifier.type === "soc_minimum" && Number(modifier.dm ?? 0) === 0 && getCharacteristic(character, "SOC") < Number(modifier.soc ?? 0)) return `requires SOC ${modifier.soc}+`;
+      if (modifier.type === "soc_maximum" && Number(modifier.dm ?? 0) === 0 && getCharacteristic(character, "SOC") > Number(modifier.soc ?? 0)) return `requires SOC ${modifier.soc}-`;
+    }
     if (career.blocked_societies?.includes(character.society_id)) return `blocked for ${character.society_id}`;
     if (career.allowed_societies?.length && !career.allowed_societies.includes(character.society_id)) return `not available for ${character.society_id}`;
     if (career.blocked_species?.includes(character.species_id)) return `blocked for ${character.species_id}`;
