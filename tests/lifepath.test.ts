@@ -552,4 +552,27 @@ describe("TravellerLifepathEngine", () => {
     expect(result.roll).toMatchObject({ natural: 3, total: 4, dm: 1 });
     expect(result.advanced).toBe(true);
   });
+
+  it("routes alien life event tables", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([9, 3, 11]));
+    let character = engine.freshCharacter();
+    character.species_id = "hiver";
+    character = engine.lifeEventRoll(character).character;
+    expect(character.dm_next_advancement).toBe(2);
+
+    character = engine.freshCharacter();
+    character.species_id = "kkree";
+    character.kkree_wives = 2;
+    character = engine.lifeEventRoll(character).character;
+    expect(character.kkree_wives).toBe(1);
+
+    character = engine.freshCharacter();
+    character.species_id = "droyne";
+    character.droyne_caste_number = 0;
+    character.extra_characteristics.PSI = 8;
+    character.psi = 8;
+    const result = engine.lifeEventRoll(character);
+    expect(result.tableId).toBe("droyne_life_events");
+    expect(result.character.psi).toBe(9);
+  });
 });
