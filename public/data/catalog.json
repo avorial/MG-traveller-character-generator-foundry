@@ -3,11 +3,11 @@
     "repository": "avorial/MG-traveller-character-generator",
     "version": "28.50"
   },
-  "generatedAt": "2026-05-29T23:22:48.607Z",
+  "generatedAt": "2026-05-30T00:21:58.881Z",
   "counts": {
     "societies": 9,
     "species": 90,
-    "careers": 80,
+    "careers": 81,
     "tables": 23,
     "backgroundPackages": 8,
     "careerPackages": 17,
@@ -12933,6 +12933,91 @@
       ]
     },
     {
+      "id": "psion",
+      "name": "Psion",
+      "source": "",
+      "societies": [
+        "any"
+      ],
+      "qualification": {
+        "characteristic": "PSI",
+        "target": 6,
+        "automatic": true
+      },
+      "assignments": [
+        {
+          "id": "adept",
+          "name": "Adept",
+          "survival": {
+            "characteristic": "PSI",
+            "target": 4
+          },
+          "advancement": {
+            "characteristic": "PSI",
+            "target": 8
+          }
+        }
+      ],
+      "assignmentCount": 1,
+      "skillTables": [
+        {
+          "id": "adept",
+          "name": "Adept",
+          "assignmentOnly": "adept",
+          "requiresEdu": null,
+          "results": 6
+        },
+        {
+          "id": "personal_development",
+          "name": "Personal Development",
+          "assignmentOnly": null,
+          "requiresEdu": null,
+          "results": 6
+        },
+        {
+          "id": "service_skills",
+          "name": "Service Skills",
+          "assignmentOnly": null,
+          "requiresEdu": null,
+          "results": 6
+        }
+      ],
+      "skillTableCount": 3,
+      "rankTracks": [
+        "adept"
+      ],
+      "eventResults": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "mishapResults": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "musteringOut": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    {
       "id": "vargr_psion",
       "name": "Psion (Vargr)",
       "source": "",
@@ -16685,6 +16770,10 @@
       {
         "id": "prisoner",
         "name": "Prisoner"
+      },
+      {
+        "id": "psion",
+        "name": "Psion"
       },
       {
         "id": "rogue",

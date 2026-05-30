@@ -1,0 +1,91 @@
+{
+  "id": "psion",
+  "name": "Psion",
+  "description": "Psionically trained travellers who develop and apply mental talents outside ordinary career structures.",
+  "qualification": {
+    "characteristic": "PSI",
+    "target": 6,
+    "automatic": true
+  },
+  "assignments": {
+    "adept": {
+      "name": "Adept",
+      "description": "You train and use psionic talents.",
+      "survival": {"characteristic": "PSI", "target": 4},
+      "advancement": {"characteristic": "PSI", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "Investigate",
+      "4": "Persuade",
+      "5": "Science",
+      "6": "Telepathy"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Telepathy",
+      "2": "Clairvoyance",
+      "3": "Awareness",
+      "4": "Telekinesis",
+      "5": "Teleportation",
+      "6": "Science (Psionicology)"
+    },
+    "adept": {
+      "name": "Adept",
+      "assignment_only": "adept",
+      "1": "Telepathy",
+      "2": "Clairvoyance",
+      "3": "Awareness",
+      "4": "Telekinesis",
+      "5": "Teleportation",
+      "6": "Science"
+    }
+  },
+  "ranks": {
+    "adept": {
+      "0": {"title": "Student", "bonus": null},
+      "1": {"title": "Initiate", "bonus": "Telepathy 1"},
+      "2": {"title": "Adept", "bonus": null},
+      "3": {"title": "Senior Adept", "bonus": "PSI +1"},
+      "4": {"title": "Mentor", "bonus": null},
+      "5": {"title": "Master", "bonus": "Science (Psionicology) 1"},
+      "6": {"title": "Grand Master", "bonus": "PSI +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Psionic strain injures you. Roll on the Injury table.",
+    "2": "Your institute is exposed or attacked. Gain an Enemy and leave this career.",
+    "3": "Your training falters. Lose PSI -1.",
+    "4": "You are forced into hiding. Gain Stealth 1 and leave this career.",
+    "5": "You become involved in illegal work. Gain Deception 1 and a Rival.",
+    "6": "A dangerous experiment scars you. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You encounter hostile authorities. Gain an Enemy.",
+    "4": "You assist another psion. Gain a Contact.",
+    "5": "Your studies broaden. Gain Science 1.",
+    "6": "You are given advanced training. Gain one psionic talent skill.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You develop discipline. Gain DM+2 to your next advancement check.",
+    "9": "You make useful allies. Gain an Ally.",
+    "10": "Your power grows. Gain PSI +1.",
+    "11": "You are recognised by your peers. Gain DM+2 to any one Benefit roll.",
+    "12": "You make a breakthrough. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 0, "benefit": "Contact"},
+    "2": {"cash": 1000, "benefit": "Scientific Equipment"},
+    "3": {"cash": 5000, "benefit": "Ally"},
+    "4": {"cash": 10000, "benefit": "EDU +1"},
+    "5": {"cash": 20000, "benefit": "PSI +1"},
+    "6": {"cash": 50000, "benefit": "TAS Membership"},
+    "7": {"cash": 100000, "benefit": "PSI +1"}
+  },
+  "complete": true,
+  "societies": ["any"]
+}
