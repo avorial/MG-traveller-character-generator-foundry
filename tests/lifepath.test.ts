@@ -388,4 +388,33 @@ describe("TravellerLifepathEngine", () => {
     expect(result.qualified).toBe(false);
     expect(result.blockedReason).toBe("not open to industrial nest Hivers");
   });
+
+  it("runs Droyne species and caste setup", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([3, 3, 3, 3, 3, 8, 6]));
+    let character = engine.freshCharacter();
+    character = engine.applySpecies(character, "droyne").character;
+    expect(character.age).toBe(12);
+    expect(character.characteristics.STR).toBe(4);
+    expect(character.characteristics.SOC).toBe(0);
+    expect(character.psi).toBe(8);
+
+    character = engine.rollDroyneCaste(character, "technician").character;
+    expect(character.droyne_caste).toBe("technician");
+    expect(character.droyne_caste_number).toBe(4);
+    expect(character.characteristics.DEX).toBe(7);
+    expect(character.characteristics.INT).toBe(8);
+    expect(character.skills.find((skill) => skill.name === "Flight")?.level).toBe(0);
+  });
+
+  it("blocks Droyne careers outside the character caste", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.species_id = "droyne";
+    character.society_id = "droyne_oytrip";
+    character.droyne_caste = "worker";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 0 };
+    const result = engine.qualifyForCareer(character, "droyne_warrior");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires warrior caste");
+  });
 });

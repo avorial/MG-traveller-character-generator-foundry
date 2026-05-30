@@ -69,6 +69,7 @@ export class TravellerLifepathEngine {
     }
 
     if (species.starting_age) next.age = Number(species.starting_age);
+    if (species.characteristic_dice) this.applySpeciesCharacteristicDice(next, species);
     if (species.uses_cha) {
       const roll = this.roller.d6() + 2;
       setCharacteristic(next, "CHA", roll);
@@ -89,6 +90,11 @@ export class TravellerLifepathEngine {
       }
       next.notes.push(`Hiver nest type: ${nestType}.`);
     }
+    if (species.droyne_caste_system) {
+      next.characteristics.SOC = 0;
+      if (!getCharacteristic(next, "PSI")) setCharacteristic(next, "PSI", this.roller.roll2D().total);
+      next.psi = getCharacteristic(next, "PSI");
+    }
     next.forbidden_skills = [...(species.forbidden_skills ?? [])];
     next.traits = [...(species.traits ?? [])];
 
@@ -103,6 +109,31 @@ export class TravellerLifepathEngine {
 
     next.notes.push(`Applied species: ${species.name ?? speciesId}.`);
     return { species, character: next };
+  }
+
+  rollDroyneCaste(character: TravellerCharacter, casteId?: string): EngineResult {
+    const species = this.rules.species(character.species_id);
+    if (!species?.droyne_caste_system) throw new Error("Droyne casting is only available to Droyne characters.");
+    const next = cloneCharacter(character);
+    const casteRoll = casteId ? null : this.roller.d6();
+    const caste = casteId ?? species.droyne_caste_table?.[String(casteRoll)] ?? null;
+    if (!caste || !species.droyne_caste_mods?.[caste]) throw new Error(`Unknown Droyne caste: ${casteId ?? casteRoll}`);
+    if (!next.droyne_caste_mods_applied) {
+      this.applyStatBlock(next, species.droyne_casting_bonus ?? {});
+      this.applyStatBlock(next, species.droyne_caste_mods[caste] ?? {});
+      next.droyne_caste_mods_applied = true;
+    }
+    next.droyne_caste = caste;
+    next.droyne_caste_number = casteRoll ?? Number(Object.entries(species.droyne_caste_table ?? {}).find(([, value]) => value === caste)?.[0] ?? 0);
+    const wingRoll = this.roller.d6();
+    next.traits = [
+      ...next.traits.filter((trait: any) => trait.name !== "Droyne Wings"),
+      { name: "Droyne Wings", description: wingRoll <= 3 ? "Vestigial wings" : wingRoll <= 5 ? "Small wings" : "Large wings" }
+    ];
+    if (wingRoll >= 4) addSkill(next, "Flight", 0, null, true);
+    else next.pending_life_event_choice = { kind: "droyne_vestigial_wing_skill", options: ["Drive", "Flyer", "Recon", "Survival"], level: 0, prompt: "Choose a replacement for Flight 0." };
+    next.notes.push(`Droyne caste: ${caste}.`);
+    return { caste, casteRoll, wingRoll, character: next };
   }
 
   applyBackgroundSkills(character: TravellerCharacter, chosen: string[]): EngineResult {
@@ -875,6 +906,18 @@ export class TravellerLifepathEngine {
     return character.completed_careers.at(-1)?.career_id ?? null;
   }
 
+  private applySpeciesCharacteristicDice(character: TravellerCharacter, species: any): void {
+    for (const [stat, formula] of Object.entries(species.characteristic_dice ?? {})) {
+      if (!formula) {
+        setCharacteristic(character, stat as CharacteristicKey, 0);
+        continue;
+      }
+      if (getCharacteristic(character, stat as CharacteristicKey)) continue;
+      if (formula === "1D+1") setCharacteristic(character, stat as CharacteristicKey, this.roller.d6() + 1);
+      if (formula === "2D") setCharacteristic(character, stat as CharacteristicKey, this.roller.roll2D().total);
+    }
+  }
+
   private applyStatBlock(character: TravellerCharacter, block: Record<string, unknown>): void {
     for (const [key, delta] of Object.entries(block)) {
       if (CORE_CHARACTERISTICS.includes(key as any) || key === "PSI" || key === "CHA") {
@@ -970,6 +1013,7 @@ export class TravellerLifepathEngine {
     if (character.forced_next_career_id && character.forced_next_career_id !== career.id) return `must enter ${character.forced_next_career_id}`;
     if (career.gender_restriction && character.gender && career.gender_restriction !== character.gender) return `requires ${career.gender_restriction} gender`;
     if (career.male_target && character.gender === "male" && Number(character.aslan_setup_status?.rite_score ?? 0) < Number(career.male_target)) return `requires Rite ${career.male_target}+`;
+    if (career.droyne_caste && character.species_id === "droyne" && character.droyne_caste !== career.droyne_caste) return `requires ${career.droyne_caste} caste`;
     if (career.hiver_open_to?.length && character.species_id === "hiver" && !career.hiver_open_to.includes("any") && !career.hiver_open_to.includes(character.hiver_nest_type)) {
       const alsoStatus = career.hiver_open_to_also_if_status;
       const statusAllows = alsoStatus && Number((character as any).hiver_status ?? 0) >= Number(alsoStatus.status ?? alsoStatus.min ?? 0);
