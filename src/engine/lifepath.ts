@@ -95,6 +95,12 @@ export class TravellerLifepathEngine {
       if (!getCharacteristic(next, "PSI")) setCharacteristic(next, "PSI", this.roller.roll2D().total);
       next.psi = getCharacteristic(next, "PSI");
     }
+    if (species.uses_kkree_family) {
+      next.gender = "male";
+      next.kkree_wives = Math.max(1, next.kkree_wives);
+      for (const skill of species.background_skills ?? []) this.applySkillOrStat(next, String(skill), 0);
+      next.kkree_soc_rank_degree = getCharacteristic(next, "SOC") >= 11 ? "noble" : getCharacteristic(next, "SOC") >= 7 ? "merchant" : "servant";
+    }
     next.forbidden_skills = [...(species.forbidden_skills ?? [])];
     next.traits = [...(species.traits ?? [])];
 
@@ -134,6 +140,17 @@ export class TravellerLifepathEngine {
     else next.pending_life_event_choice = { kind: "droyne_vestigial_wing_skill", options: ["Drive", "Flyer", "Recon", "Survival"], level: 0, prompt: "Choose a replacement for Flight 0." };
     next.notes.push(`Droyne caste: ${caste}.`);
     return { caste, casteRoll, wingRoll, character: next };
+  }
+
+  setupKkreeFamily(character: TravellerCharacter, wives: number, members: Array<Record<string, unknown>> = []): EngineResult {
+    const species = this.rules.species(character.species_id);
+    if (!species?.uses_kkree_family) throw new Error("K'kree family setup is only available to K'kree characters.");
+    const next = cloneCharacter(character);
+    next.gender = "male";
+    next.kkree_wives = Math.max(0, Math.trunc(wives));
+    next.kkree_family_members = members.map((member) => ({ ...member }));
+    next.notes.push(`K'kree family: ${next.kkree_wives} wives, ${next.kkree_family_members.length} other members.`);
+    return { character: next };
   }
 
   applyBackgroundSkills(character: TravellerCharacter, chosen: string[]): EngineResult {
@@ -884,7 +901,7 @@ export class TravellerLifepathEngine {
   }
 
   private checkDm(character: TravellerCharacter, check: any): number {
-    let dm = check?.characteristic ? characteristicDm(this.checkCharacteristicValue(character, check.characteristic)) : 0;
+    let dm = check?.characteristic ? this.checkBaseDm(character, check.characteristic) : 0;
     for (const modifier of check?.modifiers ?? []) {
       if (modifier.type === "per_previous_term") dm += Number(modifier.dm ?? 0) * character.total_terms;
       if (modifier.type === "per_previous_career") dm += Number(modifier.dm ?? 0) * character.completed_careers.length;
@@ -898,11 +915,21 @@ export class TravellerLifepathEngine {
     return dm;
   }
 
+  private checkBaseDm(character: TravellerCharacter, characteristic: unknown): number {
+    const key = String(characteristic ?? "").toUpperCase();
+    if (this.isCharacteristicKey(key) || key === "RITE_OF_PASSAGE") return characteristicDm(this.checkCharacteristicValue(character, key));
+    return this.skillDm(character, String(characteristic));
+  }
+
   private checkCharacteristicValue(character: TravellerCharacter, characteristic: unknown): number {
     const key = String(characteristic ?? "").toUpperCase();
     if (!key) return 0;
     if (key === "RITE_OF_PASSAGE") return Number(character.aslan_setup_status?.rite_score ?? 0);
     return getCharacteristic(character, key as CharacteristicKey);
+  }
+
+  private isCharacteristicKey(key: string): boolean {
+    return ["STR", "DEX", "END", "INT", "EDU", "SOC", "CHA", "TER", "PSI", "WLT", "LCK", "MRL", "STY", "RES", "FOL", "REP"].includes(key);
   }
 
   private lastCareerId(character: TravellerCharacter): string | null {
@@ -1031,6 +1058,8 @@ export class TravellerLifepathEngine {
       if (modifier.type === "soc_minimum" && Number(modifier.dm ?? 0) === 0 && getCharacteristic(character, "SOC") < Number(modifier.soc ?? 0)) return `requires SOC ${modifier.soc}+`;
       if (modifier.type === "soc_maximum" && Number(modifier.dm ?? 0) === 0 && getCharacteristic(character, "SOC") > Number(modifier.soc ?? 0)) return `requires SOC ${modifier.soc}-`;
     }
+    if (career.qualification?.soc_min != null && getCharacteristic(character, "SOC") < Number(career.qualification.soc_min)) return `requires SOC ${career.qualification.soc_min}+`;
+    if (career.qualification?.soc_max != null && getCharacteristic(character, "SOC") > Number(career.qualification.soc_max)) return `requires SOC ${career.qualification.soc_max}-`;
     if (career.blocked_societies?.includes(character.society_id)) return `blocked for ${character.society_id}`;
     if (career.allowed_societies?.length && !career.allowed_societies.includes(character.society_id)) return `not available for ${character.society_id}`;
     if (career.blocked_species?.includes(character.species_id)) return `blocked for ${character.species_id}`;
@@ -1352,8 +1381,10 @@ export class TravellerLifepathEngine {
 
   private skillDm(character: TravellerCharacter, skillText: string): number {
     const [name, speciality] = splitSkillSpeciality(skillText);
-    const exact = character.skills.find((skill) => skill.name === name && (skill.speciality ?? null) === speciality);
-    const base = character.skills.find((skill) => skill.name === name && !skill.speciality);
+    const normalizedName = name.toLowerCase();
+    const normalizedSpeciality = speciality?.toLowerCase() ?? null;
+    const exact = character.skills.find((skill) => skill.name.toLowerCase() === normalizedName && ((skill.speciality ?? null)?.toLowerCase() ?? null) === normalizedSpeciality);
+    const base = character.skills.find((skill) => skill.name.toLowerCase() === normalizedName && !skill.speciality);
     return exact?.level ?? base?.level ?? -3;
   }
 

@@ -518,4 +518,38 @@ describe("TravellerLifepathEngine", () => {
     result = engine.qualifyForCareer(character, "imperial_guard");
     expect(result.blockedReason).toBeUndefined();
   });
+
+  it("applies K'kree species setup and family state", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 8 };
+    character = engine.applySpecies(character, "kkree").character;
+    expect(character.age).toBe(14);
+    expect(character.gender).toBe("male");
+    expect(character.kkree_wives).toBe(1);
+    expect(character.kkree_soc_rank_degree).toBe("merchant");
+    expect(character.skills.find((skill) => skill.name === "Patriarchy")?.level).toBe(0);
+
+    character = engine.setupKkreeFamily(character, 2, [{ role: "warrior", name: "Escort" }]).character;
+    expect(character.kkree_wives).toBe(2);
+    expect(character.kkree_family_members).toHaveLength(1);
+  });
+
+  it("enforces K'kree SOC caste careers and Patriarchy checks", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([3]));
+    let character = engine.freshCharacter();
+    character.species_id = "kkree";
+    character.society_id = "two_thousand_worlds";
+    character.gender = "male";
+    character.characteristics = { STR: 13, DEX: 7, END: 7, INT: 9, EDU: 9, SOC: 8 };
+    let result = engine.qualifyForCareer(character, "kkree_noble");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("requires SOC 11+");
+
+    character.skills.push({ name: "Patriarchy", level: 1, speciality: null });
+    character = engine.startTerm(character, "kkree_servant", "service").character;
+    result = engine.advancementRoll(character);
+    expect(result.roll).toMatchObject({ natural: 3, total: 4, dm: 1 });
+    expect(result.advanced).toBe(true);
+  });
 });
