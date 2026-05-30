@@ -295,4 +295,23 @@ describe("TravellerLifepathEngine", () => {
     expect(character.current_term?.rank).toBe(2);
     expect(character.hiver_manipulator_bonus_awarded).toBe(true);
   });
+
+  it("tests and trains psionic talents", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules(), new DiceRoller([10, 12, 9]));
+    let character = engine.freshCharacter();
+    character.credits = 50000;
+    character = engine.testPsionics(character).character;
+    expect(character.psi).toBe(12);
+    character = engine.trainPsionicTalent(character, "telepathy").character;
+    expect(character.psi_trained_talents).toContain("telepathy");
+    expect(character.medical_debt).toBe(150000);
+    expect(character.skills.find((skill) => skill.name === "Telepathy")?.level).toBe(0);
+  });
+
+  it("blocks psionics for species that cannot develop PSI", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    const character = engine.freshCharacter();
+    character.species_id = "hiver";
+    expect(() => engine.testPsionics(character)).toThrow(/cannot develop/);
+  });
 });

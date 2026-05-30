@@ -592,6 +592,53 @@ export class TravellerLifepathEngine {
     return this.resolveCareerChoice(character, "mishap", choice);
   }
 
+  testPsionics(character: TravellerCharacter): EngineResult {
+    const species = this.rules.species(character.species_id) ?? {};
+    if (species.no_psionics) throw new Error(`${species.name ?? "This species"} cannot develop psionic ability.`);
+    if (character.psi_tested) throw new Error("This character has already been tested for psionics.");
+    const next = cloneCharacter(character);
+    const data = this.rules.table<any>("psionics");
+    const target = Number(data.potential_test?.target ?? 9);
+    const dm = -next.total_terms;
+    const potentialRoll = this.roller.roll2D(dm);
+    next.psi_tested = true;
+    if (potentialRoll.total < target) {
+      next.psi = 0;
+      setCharacteristic(next, "PSI", 0);
+      next.notes.push("Psionic potential test failed.");
+      return { potentialRoll, potentialSucceeded: false, psi: 0, character: next };
+    }
+    const psiRoll = this.roller.roll2D();
+    const formula = data.psi_strength_formula ?? {};
+    const psi = Math.max(Number(formula.min ?? 0), Math.min(Number(formula.max ?? 15), psiRoll.total - next.total_terms));
+    next.psi = psi;
+    setCharacteristic(next, "PSI", psi);
+    next.notes.push(`Psionic potential test passed; PSI ${psi}.`);
+    return { potentialRoll, potentialSucceeded: true, psiRoll, psi, character: next };
+  }
+
+  trainPsionicTalent(character: TravellerCharacter, talentId: string): EngineResult {
+    if (!character.psi_tested) throw new Error("Must complete the psionic potential test first.");
+    if (character.psi <= 0) throw new Error("Character has no psionic ability to train.");
+    if (character.psi_trained_talents.includes(talentId)) throw new Error(`Already trained in ${talentId}.`);
+    const data = this.rules.table<any>("psionics");
+    const talent = data.talents?.[talentId];
+    if (!talent) throw new Error(`Unknown psionic talent: ${talentId}`);
+    const next = cloneCharacter(character);
+    const cost = next.pre_career_status?.pending_psionic_training ? 0 : Number(talent.cost_cr ?? 200000);
+    const paid = Math.min(next.credits, cost);
+    next.credits -= paid;
+    next.medical_debt += cost - paid;
+    const roll = this.roller.roll2D(characteristicDm(next.psi));
+    const succeeded = roll.total >= Number(talent.test_target ?? 8);
+    if (succeeded) {
+      addSkill(next, String(talent.skill ?? talent.name), 0, null, true);
+      next.psi_trained_talents.push(talentId);
+    }
+    next.notes.push(`Psionic training ${talent.name}: ${succeeded ? "passed" : "failed"}.`);
+    return { talentId, talent, roll, succeeded, cost, debtIncurred: cost - paid, character: next };
+  }
+
   mishapRoll(character: TravellerCharacter): EngineResult {
     const next = cloneCharacter(character);
     const term = this.requireCurrentTerm(next);
