@@ -16,6 +16,12 @@ Link or copy this folder into Foundry's `Data/modules/traveller-character-creato
 
 Repository: <https://github.com/avorial/MG-traveller-character-generator-foundry>
 
+Manifest URL for Foundry:
+
+```text
+https://github.com/avorial/MG-traveller-character-generator-foundry/releases/latest/download/module.json
+```
+
 ## Current Implementation Status
 
 Implemented:
@@ -24,8 +30,10 @@ Implemented:
 - Rules data sync/validation scripts.
 - Character state model with Traveller-compatible skill merging.
 - Dice roller with GM forced totals.
-- Initial lifepath actions for characteristics, extra characteristics, species application, background packages, simple career packages, and NPC seed generation.
+- Lifepath actions for characteristics, heroic rolls, species/society setup, background packages, pre-career education, career terms, events, mishaps, injuries, aging, mustering out, skill packages, psionics, NPC seed generation, and robot finalization.
+- Alien/society flows for Aslan setup, Droyne casting, Hiver nest/status, K'kree family/caste handling, Solomani/Vargr/Zhodani gates, and alien life-event tables.
 - `mgt2e` actor-data export and direct actor creation API.
 - ApplicationV2 launcher, actor directory button, macro helper, draft persistence setting, and direct actor creation.
+- Release packaging that publishes the installable ZIP and manifest assets.
 
-Remaining parity work is concentrated in `src/engine/lifepath.ts`: porting every career term handler, event/mishap pending-choice branch, education branch, and robot construction calculation from the source generator.
+Remaining parity work is concentrated in the long-tail branch logic inside `src/engine/lifepath.ts`: every ambiguous event/mishap choice, deeper robot construction math, and direct parity fixtures against fixed source-generator roll sequences.
