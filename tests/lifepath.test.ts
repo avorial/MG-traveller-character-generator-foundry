@@ -575,4 +575,37 @@ describe("TravellerLifepathEngine", () => {
     expect(result.tableId).toBe("droyne_life_events");
     expect(result.character.psi).toBe(9);
   });
+
+  it("honors Solomani Party locks and auto-qualification", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.society_id = "solomani_confederation";
+    character.species_id = "imperial_human";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 10 };
+    let result = engine.qualifyForCareer(character, "party");
+    expect(result.qualified).toBe(false);
+    expect(result.blockedReason).toBe("Non-Solomani humans cannot join the Party");
+
+    character.species_id = "solomani_human";
+    result = engine.qualifyForCareer(character, "party");
+    expect(result.qualified).toBe(true);
+    expect(result.roll).toBeNull();
+  });
+
+  it("applies career note mechanics for K'kree and Girug'kagh", () => {
+    const engine = new TravellerLifepathEngine(loadTestRules());
+    let character = engine.freshCharacter();
+    character.species_id = "kkree";
+    character.gender = "male";
+    character.characteristics = { STR: 13, DEX: 7, END: 7, INT: 9, EDU: 9, SOC: 8 };
+    character = engine.startTerm(character, "kkree_merchant", "mercantile").character;
+    expect(() => engine.rollOnSkillTable(character, "personal_development")).toThrow(/first terms/);
+
+    character = engine.freshCharacter();
+    character.species_id = "girug_kagh";
+    character.characteristics = { STR: 7, DEX: 7, END: 7, INT: 7, EDU: 7, SOC: 7 };
+    character = engine.startTerm(character, "girug_kagh_translator", "translator").character;
+    expect(character.skills.find((skill) => skill.name === "Steward")?.level).toBe(1);
+    expect(character.skills.find((skill) => skill.name === "Diplomat")?.level).toBe(1);
+  });
 });

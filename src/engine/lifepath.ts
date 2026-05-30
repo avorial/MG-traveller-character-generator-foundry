@@ -459,7 +459,7 @@ export class TravellerLifepathEngine {
       return { career, qualified: false, blockedReason, character: next };
     }
     const transferAuto = next.pending_transfer_career_id === "any" || next.pending_transfer_career_id === careerId;
-    const automatic = transferAuto || next.auto_entry_career_id === careerId || next.auto_qualify_career_ids.includes(careerId);
+    const automatic = transferAuto || next.auto_entry_career_id === careerId || next.auto_qualify_career_ids.includes(careerId) || this.autoQualifies(next, career.qualification?.auto_qualify_if);
     const dm = this.checkDm(next, career.qualification ?? {})
       + next.dm_next_qualification
       + Number(next.permanent_qualification_dm_by_career[careerId] ?? 0)
@@ -527,6 +527,12 @@ export class TravellerLifepathEngine {
     for (const skill of career.career_start_skills ?? []) {
       const note = this.applySkillOrStat(next, String(skill), 0);
       if (note) term.skills_gained.push(note);
+    }
+    if (career.id === "girug_kagh_translator") {
+      for (const skill of ["Steward 1", "Diplomat 1"]) {
+        const note = this.applySkillOrStat(next, skill, 1);
+        if (note) term.skills_gained.push(note);
+      }
     }
     next.phase = "career";
     next.notes.push(`Started ${career.name ?? careerId} term ${term.term_number}.`);
@@ -925,6 +931,22 @@ export class TravellerLifepathEngine {
     return dm;
   }
 
+  private autoQualifies(character: TravellerCharacter, condition: any): boolean {
+    if (!condition) return false;
+    return Object.entries(condition).every(([stat, expression]) => {
+      const value = getCharacteristic(character, stat as CharacteristicKey);
+      const text = String(expression);
+      const match = text.match(/(>=|<=|>|<|=)\s*(\d+)/);
+      if (!match) return false;
+      const target = Number(match[2]);
+      if (match[1] === ">=") return value >= target;
+      if (match[1] === "<=") return value <= target;
+      if (match[1] === ">") return value > target;
+      if (match[1] === "<") return value < target;
+      return value === target;
+    });
+  }
+
   private checkBaseDm(character: TravellerCharacter, characteristic: unknown): number {
     const key = String(characteristic ?? "").toUpperCase();
     if (this.isCharacteristicKey(key) || key === "RITE_OF_PASSAGE") return characteristicDm(this.checkCharacteristicValue(character, key));
@@ -1059,6 +1081,7 @@ export class TravellerLifepathEngine {
     if ((career.requires_advancement || career.advancement_required) && career.requires_source_career?.length && !this.hasAdvancedInSourceCareer(character, career.requires_source_career)) {
       return "requires advancement in a source career";
     }
+    if (career.species_lock_reason && career.id === "party" && !character.species_id.includes("solomani")) return String(career.species_lock_reason);
     if (career.hiver_open_to?.length && character.species_id === "hiver" && !career.hiver_open_to.includes("any") && !career.hiver_open_to.includes(character.hiver_nest_type)) {
       const alsoStatus = career.hiver_open_to_also_if_status;
       const statusAllows = alsoStatus && Number((character as any).hiver_status ?? 0) >= Number(alsoStatus.status ?? alsoStatus.min ?? 0);
@@ -1172,6 +1195,7 @@ export class TravellerLifepathEngine {
     const table = career.skill_tables?.[tableId];
     if (!table) throw new Error(`Unknown skill table ${tableId} for ${career.id}`);
     const term = character.current_term;
+    if (career.id?.startsWith("kkree_") && term?.term_number === 1 && tableId !== "warrior") throw new Error("K'kree first terms must use the Warrior skill table.");
     if (table.assignment_only && term?.assignment_id !== table.assignment_only) throw new Error(`${table.name ?? tableId} is only available to ${table.assignment_only}.`);
     if (table.requires_commission && !term?.commissioned) throw new Error(`${table.name ?? tableId} requires a commission.`);
     if (table.requires_edu && getCharacteristic(character, "EDU") < Number(table.requires_edu)) throw new Error(`${table.name ?? tableId} requires EDU ${table.requires_edu}+.`);
