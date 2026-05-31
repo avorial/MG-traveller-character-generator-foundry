@@ -37,6 +37,16 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       preCareerEvent: TravellerCreatorApp.preCareerEvent,
       graduatePreCareer: TravellerCreatorApp.graduatePreCareer,
       skipPreCareer: TravellerCreatorApp.skipPreCareer,
+      qualifyStartCareer: TravellerCreatorApp.qualifyStartCareer,
+      survivalRoll: TravellerCreatorApp.survivalRoll,
+      eventRoll: TravellerCreatorApp.eventRoll,
+      mishapRoll: TravellerCreatorApp.mishapRoll,
+      commissionRoll: TravellerCreatorApp.commissionRoll,
+      advancementRoll: TravellerCreatorApp.advancementRoll,
+      continueCareer: TravellerCreatorApp.continueCareer,
+      leaveCareer: TravellerCreatorApp.leaveCareer,
+      musterCash: TravellerCreatorApp.musterCash,
+      musterBenefit: TravellerCreatorApp.musterBenefit,
       applyCareerPackage: TravellerCreatorApp.applyCareerPackage,
       applySkillPackage: TravellerCreatorApp.applySkillPackage,
       createActor: TravellerCreatorApp.createActor,
@@ -63,6 +73,12 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       curriculaList: Object.values(track.curricula ?? {})
     }));
     const activeTrack = rules.table<any>("education").tracks?.[String(this.character.pre_career_status?.track_id ?? "")] ?? null;
+    const currentCareer = this.character.current_term ? rules.career(this.character.current_term.career_id) : null;
+    const careerChoices = rules.careersForSociety(this.character.society_id).map((career: any) => ({
+      ...career,
+      assignmentList: assignmentList(career)
+    }));
+    const currentCareerRecord = this.character.completed_careers.at(-1) ?? null;
     return {
       character: this.character,
       aslanPhase: this.character.aslan_setup_status?.phase ?? null,
@@ -78,6 +94,14 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       educationTracks,
       activeTrack,
       manualBackgroundSkills: ["Admin", "Athletics", "Carouse", "Drive", "Electronics", "Flyer", "Language", "Mechanic", "Medic", "Profession", "Science", "Streetwise", "Survival", "Vacc Suit"],
+      careerChoices,
+      currentCareer,
+      currentCareerRecord,
+      hasCurrentTerm: Boolean(this.character.current_term),
+      canRollSurvival: Boolean(this.character.current_term && this.character.current_term.survived == null),
+      canRollEvent: Boolean(this.character.current_term && this.character.current_term.survived !== false),
+      canRollCommission: Boolean(this.character.current_term && currentCareer?.commission && !this.character.current_term.commissioned),
+      canRollAdvancement: Boolean(this.character.current_term && this.character.current_term.survived !== false && this.character.current_term.advanced == null),
       careerPackages: Object.values(rules.table<any>("career_packages").packages ?? {}),
       skillPackages: Object.entries(rules.table<any>("skill_packages").packages ?? {}).map(([id, pkg]: [string, any]) => ({ id, ...pkg })),
       canCreate: this.character.phase === "done"
@@ -211,6 +235,79 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     this.render();
   }
 
+  static async qualifyStartCareer(this: TravellerCreatorApp, event: Event, target: HTMLElement): Promise<void> {
+    const careerId = target.dataset.career;
+    if (!careerId) return;
+    const assignmentId = target.dataset.assignment;
+    try {
+      const qualified = this.api.engine!.qualifyForCareer(this.character, careerId);
+      this.character = qualified.character;
+      if (qualified.qualified) this.character = this.api.engine!.startTerm(this.character, careerId, assignmentId).character;
+    } catch (error) {
+      ui.notifications?.warn(error instanceof Error ? error.message : String(error));
+    }
+    this.saveDraft();
+    this.render();
+  }
+
+  static async survivalRoll(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.survivalRoll(this.character).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async eventRoll(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.eventRoll(this.character).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async mishapRoll(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.mishapRoll(this.character).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async commissionRoll(this: TravellerCreatorApp): Promise<void> {
+    try {
+      this.character = this.api.engine!.commissionRoll(this.character).character;
+    } catch (error) {
+      ui.notifications?.warn(error instanceof Error ? error.message : String(error));
+    }
+    this.saveDraft();
+    this.render();
+  }
+
+  static async advancementRoll(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.advancementRoll(this.character).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async continueCareer(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.endTerm(this.character, false).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async leaveCareer(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.endTerm(this.character, true).character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async musterCash(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.musterOutRoll(this.character, undefined, "cash").character;
+    this.saveDraft();
+    this.render();
+  }
+
+  static async musterBenefit(this: TravellerCreatorApp): Promise<void> {
+    this.character = this.api.engine!.musterOutRoll(this.character, undefined, "benefit").character;
+    this.saveDraft();
+    this.render();
+  }
+
   static async applyCareerPackage(this: TravellerCreatorApp, event: Event, target: HTMLElement): Promise<void> {
     const id = target.dataset.id;
     if (!id) return;
@@ -266,4 +363,11 @@ export class TravellerCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
 function draftKey(): string {
   return `traveller-character-creator.${game.world?.id ?? "world"}.${game.user?.id ?? "user"}.draft`;
+}
+
+function assignmentList(career: any): Array<{ id: string; name: string }> {
+  if (Array.isArray(career.assignments)) {
+    return career.assignments.map((assignment: any) => ({ id: String(assignment.id), name: String(assignment.name ?? assignment.id) }));
+  }
+  return Object.entries(career.assignments ?? {}).map(([id, assignment]: [string, any]) => ({ id, name: String(assignment?.name ?? id) }));
 }

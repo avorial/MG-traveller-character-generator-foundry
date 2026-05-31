@@ -97,6 +97,21 @@
   margin: 0 0 12px;
 }
 
+.tc-term-summary {
+  border: 1px solid var(--color-border-light-primary);
+  border-radius: 4px;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0 0 12px;
+  padding: 8px;
+}
+
+.tc-term-summary span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .tc-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

@@ -177,14 +177,70 @@
       {{/if}}
 
       {{#if (eq character.phase "career")}}
-        <h3>Career Package</h3>
-        <p>Career packages are implemented as a data-driven fast path while the full term-by-term career loop is being ported.</p>
-        <div class="tc-card-grid">
-          {{#each careerPackages as |pkg|}}
-            <button type="button" data-action="applyCareerPackage" data-id="{{pkg.id}}">
-              <strong>{{pkg.name}}</strong>
-            </button>
-          {{/each}}
+        {{#if hasCurrentTerm}}
+          <h3>{{currentCareer.name}} Term {{character.current_term.term_number}}</h3>
+          <div class="tc-term-summary">
+            <span>Assignment: {{character.current_term.assignment_id}}</span>
+            <span>Rank: {{character.current_term.rank}}{{#if character.current_term.rank_title}} ({{character.current_term.rank_title}}){{/if}}</span>
+            <span>Survival: {{character.current_term.survived}}</span>
+            <span>Advanced: {{character.current_term.advanced}}</span>
+          </div>
+          <div class="tc-actions">
+            {{#if canRollSurvival}}
+              <button type="button" data-action="survivalRoll"><i class="fa-solid fa-shield-heart"></i> Survival</button>
+            {{/if}}
+            {{#if (eq character.current_term.survived false)}}
+              <button type="button" data-action="mishapRoll"><i class="fa-solid fa-triangle-exclamation"></i> Mishap</button>
+            {{/if}}
+            {{#if canRollEvent}}
+              <button type="button" data-action="eventRoll"><i class="fa-solid fa-dice"></i> Event</button>
+            {{/if}}
+            {{#if canRollCommission}}
+              <button type="button" data-action="commissionRoll"><i class="fa-solid fa-medal"></i> Commission</button>
+            {{/if}}
+            {{#if canRollAdvancement}}
+              <button type="button" data-action="advancementRoll"><i class="fa-solid fa-arrow-up"></i> Advancement</button>
+            {{/if}}
+          </div>
+          <div class="tc-actions">
+            <button type="button" data-action="continueCareer"><i class="fa-solid fa-forward"></i> Continue Career</button>
+            <button type="button" class="primary" data-action="leaveCareer"><i class="fa-solid fa-door-open"></i> Leave And Muster Out</button>
+          </div>
+        {{else}}
+          <h3>Career</h3>
+          <div class="tc-card-grid">
+            {{#each careerChoices as |career|}}
+              {{#each career.assignmentList as |assignment|}}
+                <button type="button" data-action="qualifyStartCareer" data-career="{{career.id}}" data-assignment="{{assignment.id}}">
+                  <strong>{{career.name}}</strong>
+                  <span>{{assignment.name}}</span>
+                </button>
+              {{/each}}
+            {{/each}}
+          </div>
+
+          <h4>Fast Packages</h4>
+          <div class="tc-card-grid compact">
+            {{#each careerPackages as |pkg|}}
+              <button type="button" data-action="applyCareerPackage" data-id="{{pkg.id}}">
+                <strong>{{pkg.name}}</strong>
+              </button>
+            {{/each}}
+          </div>
+        {{/if}}
+      {{/if}}
+
+      {{#if (eq character.phase "mustering")}}
+        <h3>Mustering Out</h3>
+        <div class="tc-term-summary">
+          <span>Career: {{currentCareerRecord.career_id}}</span>
+          <span>Pending rolls: {{character.pending_benefit_rolls}}</span>
+          <span>Credits: {{character.credits}}</span>
+          <span>Ship shares: {{character.ship_shares}}</span>
+        </div>
+        <div class="tc-actions">
+          <button type="button" data-action="musterCash"><i class="fa-solid fa-coins"></i> Cash</button>
+          <button type="button" class="primary" data-action="musterBenefit"><i class="fa-solid fa-gift"></i> Benefit</button>
         </div>
       {{/if}}
 
