@@ -73,8 +73,39 @@
       {{/if}}
 
       {{#if (eq character.phase "background")}}
-        <h3>Background Package</h3>
-        <p>This v1 screen uses the generator's package data to advance into career selection quickly.</p>
+        <h3>Background</h3>
+        <div class="tc-actions">
+          <button type="button" data-action="skipBackground"><i class="fa-solid fa-graduation-cap"></i> Pre-Career Education</button>
+          <button type="button" data-action="skipPreCareer"><i class="fa-solid fa-briefcase"></i> Skip To Career</button>
+        </div>
+
+        {{#if needsDroyneCaste}}
+          <h4>Droyne Casting</h4>
+          <div class="tc-card-grid compact">
+            <button type="button" data-action="rollDroyneCaste"><strong>Roll Caste</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="worker"><strong>Worker</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="warrior"><strong>Warrior</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="drone"><strong>Drone</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="technician"><strong>Technician</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="sport"><strong>Sport</strong></button>
+            <button type="button" data-action="rollDroyneCaste" data-caste="leader"><strong>Leader</strong></button>
+          </div>
+        {{/if}}
+
+        {{#if isKkree}}
+          <h4>K'kree Family</h4>
+          <button type="button" data-action="setupKkreeFamily"><i class="fa-solid fa-users"></i> Confirm Family</button>
+        {{/if}}
+
+        <h4>Manual Background Skills</h4>
+        <div class="tc-card-grid compact">
+          <button type="button" data-action="applyManualBackground" data-skills="Admin,Streetwise,Vacc Suit"><strong>Urban</strong></button>
+          <button type="button" data-action="applyManualBackground" data-skills="Survival,Recon,Animals"><strong>Frontier</strong></button>
+          <button type="button" data-action="applyManualBackground" data-skills="Mechanic,Electronics,Profession"><strong>Technical</strong></button>
+          <button type="button" data-action="applyManualBackground" data-skills="Carouse,Language,Admin"><strong>Cosmopolitan</strong></button>
+        </div>
+
+        <h4>Background Package</h4>
         <div class="tc-card-grid">
           {{#each backgroundPackages as |pkg|}}
             <button type="button" data-action="applyBackgroundPackage" data-id="{{pkg.id}}">
@@ -84,9 +115,65 @@
         </div>
       {{/if}}
 
+      {{#if (eq character.phase "aslan_setup")}}
+        <h3>Aslan Setup</h3>
+        {{#if (eq aslanPhase "gender")}}
+          <div class="tc-card-grid compact">
+            <button type="button" data-action="chooseAslanGender" data-gender="male"><strong>Male</strong></button>
+            <button type="button" data-action="chooseAslanGender" data-gender="female"><strong>Female</strong></button>
+          </div>
+        {{/if}}
+        {{#if (eq aslanPhase "clan")}}
+          <button type="button" class="primary" data-action="rollAslanClan">Roll Clan</button>
+        {{/if}}
+        {{#if (eq aslanPhase "ancestry")}}
+          <button type="button" class="primary" data-action="rollAslanAncestry">Roll Ancestry</button>
+        {{/if}}
+        {{#if (eq aslanPhase "family")}}
+          <button type="button" class="primary" data-action="rollAslanFamily">Roll Family</button>
+        {{/if}}
+        {{#if (eq aslanPhase "rite")}}
+          <button type="button" class="primary" data-action="rollAslanRite">Roll Rite Of Passage</button>
+        {{/if}}
+      {{/if}}
+
+      {{#if (eq character.phase "zhodani_training")}}
+        <h3>Psionic Training</h3>
+        <button type="button" class="primary" data-action="finishZhodaniTraining">Continue</button>
+      {{/if}}
+
       {{#if (eq character.phase "pre_career")}}
         <h3>Pre-Career Education</h3>
-        <p>The detailed education branch is reserved for the full parity port. Use a background package flow for now, or continue with a career package by changing phase through the engine/debug API.</p>
+        {{#if character.pre_career_status.enrolled}}
+          <div class="tc-actions">
+            <button type="button" data-action="preCareerEvent"><i class="fa-solid fa-dice"></i> Roll Event</button>
+            <button type="button" class="primary" data-action="graduatePreCareer"><i class="fa-solid fa-graduation-cap"></i> Graduate</button>
+            <button type="button" data-action="skipPreCareer"><i class="fa-solid fa-briefcase"></i> Leave Education</button>
+          </div>
+        {{else}}
+          <div class="tc-actions">
+            <button type="button" data-action="skipPreCareer"><i class="fa-solid fa-briefcase"></i> Skip To Career</button>
+          </div>
+          <div class="tc-card-grid">
+            {{#each educationTracks as |track|}}
+              {{#each track.servicesList as |service|}}
+                <button type="button" data-action="qualifyPreCareer" data-id="{{track.id}}" data-service="{{service.id}}">
+                  <strong>{{service.name}}</strong>
+                </button>
+              {{else}}
+                {{#each track.curriculaList as |curriculum|}}
+                  <button type="button" data-action="qualifyPreCareer" data-id="{{track.id}}" data-curriculum="{{curriculum.id}}">
+                    <strong>{{track.name}}: {{curriculum.name}}</strong>
+                  </button>
+                {{else}}
+                  <button type="button" data-action="qualifyPreCareer" data-id="{{track.id}}">
+                    <strong>{{track.name}}</strong>
+                  </button>
+                {{/each}}
+              {{/each}}
+            {{/each}}
+          </div>
+        {{/if}}
       {{/if}}
 
       {{#if (eq character.phase "career")}}

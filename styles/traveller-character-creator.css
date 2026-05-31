@@ -85,10 +85,26 @@
   margin: 0 0 8px;
 }
 
+.tc-stage h4 {
+  font-size: 14px;
+  margin: 14px 0 8px;
+}
+
+.tc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
 .tc-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 8px;
+}
+
+.tc-card-grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 }
 
 .tc-card-grid button {
